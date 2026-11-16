@@ -1,0 +1,18 @@
+﻿.sidebar {
+  background-color: var(--sidebar-bg) !important;
+}
+
+.nav-link {
+  transition: all 0.2s ease-in-out;
+}
+
+.nav-link:hover {
+  background-color: var(--sidebar-hover);
+  color: #fff !important;
+}
+
+.nav-link.active {
+  background-color: var(--sidebar-active);
+  color: #fff !important;
+  font-weight: 600;
+}

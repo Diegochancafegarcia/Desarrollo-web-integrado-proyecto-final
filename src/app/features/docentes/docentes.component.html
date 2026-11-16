@@ -1,0 +1,139 @@
+﻿<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-person-badge-fill text-danger me-2"></i> Mantenimiento de Docentes
+      </h3>
+      <p class="text-muted mb-0 small">
+        Plana docente de la institución &bull; Tabla <code>docentes</code>
+      </p>
+    </div>
+  </div>
+
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeExito() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)"></button>
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm">
+      <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeError() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeError.set(null)"></button>
+    </div>
+  }
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Buscar docente por nombre o especialidad..."
+              [ngModel]="filtroTexto()"
+              (ngModelChange)="filtroTexto.set($event)"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted small">Cargando docentes...</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Código</th>
+                <th>Docente</th>
+                <th>Correo Institucional</th>
+                <th>Especialidad</th>
+                <th>Teléfono</th>
+                @if (authService.hasRole('ADMIN')) {
+                  <th class="text-end pe-4">Acciones</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (d of docentesFiltrados; track d.id) {
+                <tr>
+                  <td class="ps-4 fw-semibold text-primary">{{ d.codigoDocente }}</td>
+                  <td>
+                    <div class="fw-bold">{{ d.nombres }} {{ d.apellidos }}</div>
+                  </td>
+                  <td>
+                    <a href="mailto:{{ d.correo }}" class="text-decoration-none">
+                      <i class="bi bi-envelope me-1"></i>{{ d.correo }}
+                    </a>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border">
+                      {{ d.especialidad || 'Primaria' }}
+                    </span>
+                  </td>
+                  <td>{{ d.telefono || 'Sin teléfono' }}</td>
+                  @if (authService.hasRole('ADMIN')) {
+                    <td class="text-end pe-4">
+                      <button (click)="abrirModalEditar(d)" class="btn btn-outline-primary btn-sm" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                      </button>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Docente -->
+@if (modalAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Editar Docente</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()"></button>
+        </div>
+        <form [formGroup]="docenteForm" (ngSubmit)="guardar()">
+          <div class="modal-body p-4">
+            <div class="alert alert-light border mb-3">
+              <strong>{{ docenteEditando()?.nombres }} {{ docenteEditando()?.apellidos }}</strong>
+              <small class="d-block text-muted">{{ docenteEditando()?.correo }}</small>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Código Docente <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" formControlName="codigoDocente" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Especialidad</label>
+              <input type="text" class="form-control" formControlName="especialidad" placeholder="Ej. Matemática y Ciencia" />
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Teléfono</label>
+              <input type="text" class="form-control" formControlName="telefono" placeholder="Ej. 987654321" />
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Actualizar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

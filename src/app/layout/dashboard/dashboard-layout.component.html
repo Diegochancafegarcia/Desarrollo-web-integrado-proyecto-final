@@ -1,0 +1,152 @@
+﻿<div class="d-flex" id="wrapper">
+  <!-- Sidebar -->
+  <aside class="sidebar bg-dark text-white d-flex flex-column" style="width: 260px; min-height: 100vh;">
+    <!-- Brand -->
+    <div class="sidebar-brand p-3 d-flex align-items-center border-bottom border-secondary bg-primary-custom">
+      <i class="bi bi-mortarboard-fill fs-3 me-2"></i>
+      <div>
+        <div class="fw-bold lh-1 text-white">Santa Rosa</div>
+        <small class="text-white-50" style="font-size: 0.75rem;">I.E. N.° 80892 &bull; Primaria</small>
+      </div>
+    </div>
+
+    <!-- Navigation Menu -->
+    <ul class="nav flex-column p-2 flex-grow-1">
+      <li class="nav-item mb-1">
+        <a routerLink="/dashboard/home" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+          <i class="bi bi-speedometer2 me-2 fs-5"></i>
+          <span>Inicio</span>
+        </a>
+      </li>
+
+      <!-- Menú Mantenimientos (ADMIN, DIRECTOR, DOCENTE) -->
+      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR', 'DOCENTE'])) {
+        <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
+          Mantenimientos Básicos
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/alumnos" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-person-lines-fill me-2 fs-5"></i>
+            <span>Alumnos</span>
+          </a>
+        </li>
+      }
+
+      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR'])) {
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/docentes" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-person-badge-fill me-2 fs-5"></i>
+            <span>Docentes</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/apoderados" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-people-fill me-2 fs-5"></i>
+            <span>Apoderados</span>
+          </a>
+        </li>
+      }
+
+      <!-- Menú Académico (ADMIN, DIRECTOR) -->
+      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR'])) {
+        <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
+          Organización Escolar
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/cursos" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-journal-bookmark-fill me-2 fs-5"></i>
+            <span>Cursos</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/aulas" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-door-open-fill me-2 fs-5"></i>
+            <span>Aulas & Grados</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/matriculas" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-card-checklist me-2 fs-5"></i>
+            <span>Matrículas</span>
+          </a>
+        </li>
+      }
+
+      <!-- Menú Procesos Pedagógicos (DOCENTE, ADMIN) -->
+      @if (authService.hasAnyRole(['ADMIN', 'DOCENTE'])) {
+        <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
+          Gestión Pedagógica
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/calificaciones" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-award-fill me-2 fs-5"></i>
+            <span>Calificaciones</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/asistencias" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-calendar-check-fill me-2 fs-5"></i>
+            <span>Asistencia</span>
+          </a>
+        </li>
+      }
+
+      <!-- Menú Apoderado -->
+      @if (authService.hasRole('APODERADO')) {
+        <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
+          Portal Familiar
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/alumnos" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-heart-fill me-2 fs-5"></i>
+            <span>Mis Hijos (Notas)</span>
+          </a>
+        </li>
+      }
+    </ul>
+
+    <!-- Footer Sidebar con Logout -->
+    <div class="p-3 border-top border-secondary bg-dark text-center">
+      <button (click)="logout()" class="btn btn-outline-danger btn-sm w-100 d-flex align-items-center justify-content-center">
+        <i class="bi bi-box-arrow-left me-2"></i> Cerrar Sesión
+      </button>
+    </div>
+  </aside>
+
+  <!-- Page Content -->
+  <div class="flex-grow-1 d-flex flex-column min-vh-100 bg-light">
+    <!-- Navbar Superior -->
+    <nav class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm px-4 py-2">
+      <div class="container-fluid p-0 d-flex justify-content-between align-items-center">
+        <span class="text-secondary fw-semibold">
+          <i class="bi bi-shield-check text-success me-1"></i> Sesión Segura (JWT)
+        </span>
+
+        <!-- Info Usuario -->
+        <div class="d-flex align-items-center gap-3">
+          <div class="text-end">
+            <div class="fw-bold text-dark lh-1">
+              {{ authService.currentUser()?.nombres }} {{ authService.currentUser()?.apellidos }}
+            </div>
+            <span class="badge bg-primary-custom text-white" style="font-size: 0.68rem;">
+              {{ rolPrincipal }}
+            </span>
+          </div>
+          <div class="rounded-circle bg-light border p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+            <i class="bi bi-person-fill text-secondary fs-5"></i>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Área de Trabajo Principal -->
+    <main class="p-4 flex-grow-1">
+      <router-outlet></router-outlet>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-top py-2 px-4 text-center text-muted small">
+      Intranet Académica &bull; I.E. N.° 80892 "Santa Rosa de Lima" &bull; UTP 2026
+    </footer>
+  </div>
+</div>

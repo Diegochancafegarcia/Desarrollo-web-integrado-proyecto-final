@@ -1,0 +1,120 @@
+﻿<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-card-checklist text-danger me-2"></i> Gestión de Matrículas
+      </h3>
+      <p class="text-muted mb-0 small">
+        Asignación de alumnos a aulas por año lectivo &bull; Tabla <code>matriculas</code>
+      </p>
+    </div>
+
+    @if (authService.hasRole('ADMIN')) {
+      <button (click)="abrirModal()" class="btn btn-primary d-flex align-items-center shadow-sm">
+        <i class="bi bi-plus-circle me-2"></i> Nueva Matrícula
+      </button>
+    }
+  </div>
+
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show shadow-sm">
+      <i class="bi bi-check-circle-fill me-2"></i> {{ mensajeExito() }}
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)"></button>
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ mensajeError() }}
+      <button type="button" class="btn-close" (click)="mensajeError.set(null)"></button>
+    </div>
+  }
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted small">Cargando matrículas...</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">N° Matrícula</th>
+                <th>Código Alumno</th>
+                <th>Estudiante</th>
+                <th>Grado y Sección</th>
+                <th>Año Lectivo</th>
+                <th>Fecha Matrícula</th>
+                <th class="text-end pe-4">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (m of matriculas(); track m.id) {
+                <tr>
+                  <td class="ps-4 fw-bold">#{{ m.id }}</td>
+                  <td class="text-primary fw-semibold">{{ m.codigoAlumno }}</td>
+                  <td class="fw-semibold">{{ m.alumno }}</td>
+                  <td>{{ m.grado }} - Sección "{{ m.seccion }}"</td>
+                  <td><span class="badge bg-secondary">Año {{ m.anio }}</span></td>
+                  <td>{{ m.fechaMatricula }}</td>
+                  <td class="text-end pe-4">
+                    <span class="badge bg-success-subtle text-success border border-success">
+                      {{ m.estado }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- Modal Nueva Matrícula -->
+@if (modalAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Matricular Alumno</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()"></button>
+        </div>
+        <form [formGroup]="matForm" (ngSubmit)="guardar()">
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-medium">Seleccionar Alumno (Estado ACTIVO) <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="alumnoId">
+                <option [ngValue]="null">-- Seleccione alumno --</option>
+                @for (al of alumnos(); track al.id) {
+                  <option [ngValue]="al.id">{{ al.apellidos }}, {{ al.nombres }} ({{ al.codigoAlumno }})</option>
+                }
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Seleccionar Aula de Destino <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="aulaId">
+                <option [ngValue]="null">-- Seleccione aula --</option>
+                @for (au of aulas(); track au.id) {
+                  <option [ngValue]="au.id">{{ au.grado }} - Sección "{{ au.seccion }}" (Año {{ au.anio }} &bull; Capacidad: {{ au.capacidad }})</option>
+                }
+              </select>
+            </div>
+            <div class="alert alert-info small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              <strong>Regla de negocio:</strong> El sistema validará automáticamente que el alumno no tenga ya una matrícula activa en el mismo año lectivo y que el aula no supere su aforo.
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i> Registrar Matrícula</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

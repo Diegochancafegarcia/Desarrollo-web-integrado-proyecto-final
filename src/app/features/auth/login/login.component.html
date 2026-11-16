@@ -1,0 +1,107 @@
+﻿<div class="min-vh-100 d-flex align-items-center justify-content-center bg-light py-5">
+  <div class="container">
+    <div class="row justify-content-center">
+      <div class="col-12 col-md-8 col-lg-5">
+        <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+          <!-- Institutional Header -->
+          <div class="bg-primary-custom text-white text-center p-4">
+            <div class="mb-2">
+              <i class="bi bi-mortarboard-fill display-4"></i>
+            </div>
+            <h4 class="fw-bold mb-1">I.E. N.° 80892</h4>
+            <h6 class="text-white-50 text-uppercase tracking-wider mb-0">"Santa Rosa de Lima"</h6>
+            <div class="badge bg-light text-dark mt-2 fw-semibold px-3 py-1">INTRANET ACADÉMICA</div>
+          </div>
+
+          <div class="card-body p-4 p-md-5">
+            <h5 class="fw-bold text-secondary mb-3 text-center">Iniciar Sesión</h5>
+
+            @if (errorMessage()) {
+              <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                <div>{{ errorMessage() }}</div>
+              </div>
+            }
+
+            <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+              <!-- Correo -->
+              <div class="mb-3">
+                <label for="correo" class="form-label fw-medium text-muted">Correo Institucional</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-envelope text-muted"></i></span>
+                  <input
+                    type="email"
+                    id="correo"
+                    class="form-control border-start-0"
+                    placeholder="ejemplo@santarosa.edu.pe"
+                    formControlName="correo"
+                    [class.is-invalid]="loginForm.get('correo')?.touched && loginForm.get('correo')?.invalid"
+                  />
+                </div>
+                @if (loginForm.get('correo')?.touched && loginForm.get('correo')?.invalid) {
+                  <div class="text-danger small mt-1">Ingrese un correo válido.</div>
+                }
+              </div>
+
+              <!-- Password -->
+              <div class="mb-4">
+                <label for="password" class="form-label fw-medium text-muted">Contraseña</label>
+                <div class="input-group">
+                  <span class="input-group-text bg-light border-end-0"><i class="bi bi-lock text-muted"></i></span>
+                  <input
+                    type="password"
+                    id="password"
+                    class="form-control border-start-0"
+                    placeholder="••••••••"
+                    formControlName="password"
+                    [class.is-invalid]="loginForm.get('password')?.touched && loginForm.get('password')?.invalid"
+                  />
+                </div>
+                @if (loginForm.get('password')?.touched && loginForm.get('password')?.invalid) {
+                  <div class="text-danger small mt-1">La contraseña es requerida (mínimo 6 caracteres).</div>
+                }
+              </div>
+
+              <!-- Submit Button -->
+              <button
+                type="submit"
+                class="btn btn-primary w-100 py-2 fw-semibold rounded-3 mb-4 d-flex align-items-center justify-content-center shadow-sm"
+                [disabled]="isLoading()"
+              >
+                @if (isLoading()) {
+                  <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Validando credenciales...
+                } @else {
+                  <i class="bi bi-box-arrow-in-right me-2"></i> Ingresar al Sistema
+                }
+              </button>
+            </form>
+
+            <!-- Acceso Rápido Demo -->
+            <div class="border-top pt-3">
+              <small class="text-muted d-block text-center mb-2 fw-semibold">Cuentas de prueba rápida:</small>
+              <div class="d-flex flex-wrap gap-2 justify-content-center">
+                <button type="button" class="btn btn-sm btn-outline-danger" (click)="cargarCredencialDemo('admin')">
+                  <i class="bi bi-shield-lock me-1"></i> Admin
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-primary" (click)="cargarCredencialDemo('docente')">
+                  <i class="bi bi-person-workspace me-1"></i> Docente
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-success" (click)="cargarCredencialDemo('apoderado')">
+                  <i class="bi bi-people me-1"></i> Apoderado
+                </button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" (click)="cargarCredencialDemo('director')">
+                  <i class="bi bi-person-badge me-1"></i> Director
+                </button>
+              </div>
+            </div>
+
+          </div>
+          <div class="card-footer bg-light text-center py-3 border-0">
+            <small class="text-muted">Desarrollo Web Integrado &bull; UTP 2026</small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

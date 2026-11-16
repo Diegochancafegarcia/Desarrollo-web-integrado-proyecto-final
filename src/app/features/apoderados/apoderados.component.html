@@ -1,0 +1,232 @@
+﻿<div class="container-fluid p-0">
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-people-fill text-danger me-2"></i> Mantenimiento de Apoderados
+      </h3>
+      <p class="text-muted mb-0 small">
+        Registro y administración de padres de familia y tutores &bull; Tablas <code>apoderados</code> y <code>usuarios</code>
+      </p>
+    </div>
+
+    @if (authService.hasRole('ADMIN')) {
+      <button (click)="abrirModalCrear()" class="btn btn-primary d-flex align-items-center shadow-sm">
+        <i class="bi bi-person-plus-fill me-2"></i> Nuevo Apoderado
+      </button>
+    }
+  </div>
+
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeExito() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)"></button>
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeError() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeError.set(null)"></button>
+    </div>
+  }
+
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Buscar por DNI, nombres o correo..."
+              [ngModel]="filtroTexto()"
+              (ngModelChange)="filtroTexto.set($event)"
+            />
+          </div>
+        </div>
+        <div class="col-12 col-md-7 text-md-end text-muted small">
+          Mostrando <strong>{{ apoderadosFiltrados.length }}</strong> de <strong>{{ apoderados().length }}</strong> apoderados
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted small">Cargando apoderados desde MySQL...</p>
+        </div>
+      } @else if (apoderadosFiltrados.length === 0) {
+        <div class="text-center py-5">
+          <i class="bi bi-inbox display-4 text-muted"></i>
+          <p class="mt-2 text-muted">No se encontraron apoderados registrados.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Documento (DNI)</th>
+                <th>Apoderado / Tutor</th>
+                <th>Correo de Acceso (Usuario)</th>
+                <th>Teléfono</th>
+                <th>Estado Cuenta</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (ap of apoderadosFiltrados; track ap.id) {
+                <tr>
+                  <td class="ps-4 fw-semibold text-primary">
+                    <i class="bi bi-person-vcard me-1"></i> {{ ap.documento }}
+                  </td>
+                  <td>
+                    <div class="fw-bold">{{ ap.nombres }} {{ ap.apellidos }}</div>
+                    <small class="text-muted">ID Apoderado: #{{ ap.id }} &bull; User ID: #{{ ap.usuarioId }}</small>
+                  </td>
+                  <td>
+                    <a href="mailto:{{ ap.correo }}" class="text-decoration-none">
+                      <i class="bi bi-envelope text-secondary me-1"></i>{{ ap.correo }}
+                    </a>
+                  </td>
+                  <td>
+                    <i class="bi bi-telephone text-success me-1"></i>
+                    {{ ap.telefono || 'Sin registrar' }}
+                  </td>
+                  <td>
+                    <span class="badge bg-success-subtle text-success border border-success">
+                      ROL APODERADO
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REGISTRAR NUEVO APODERADO -->
+@if (modalAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-person-plus-fill me-1"></i> Registrar Nuevo Apoderado
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()"></button>
+        </div>
+
+        <form [formGroup]="apoderadoForm" (ngSubmit)="guardar()">
+          <div class="modal-body p-4">
+            <div class="row g-3">
+              <!-- Nombres -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Nombres <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej. Rosa María"
+                  formControlName="nombres"
+                  [class.is-invalid]="apoderadoForm.get('nombres')?.touched && apoderadoForm.get('nombres')?.invalid"
+                />
+                @if (apoderadoForm.get('nombres')?.touched && apoderadoForm.get('nombres')?.invalid) {
+                  <div class="invalid-feedback">Los nombres son requeridos.</div>
+                }
+              </div>
+
+              <!-- Apellidos -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Apellidos <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej. Ramos de Quispe"
+                  formControlName="apellidos"
+                  [class.is-invalid]="apoderadoForm.get('apellidos')?.touched && apoderadoForm.get('apellidos')?.invalid"
+                />
+                @if (apoderadoForm.get('apellidos')?.touched && apoderadoForm.get('apellidos')?.invalid) {
+                  <div class="invalid-feedback">Los apellidos son requeridos.</div>
+                }
+              </div>
+
+              <!-- Documento (DNI) -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Documento / DNI <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej. 40891234"
+                  formControlName="documento"
+                  [class.is-invalid]="apoderadoForm.get('documento')?.touched && apoderadoForm.get('documento')?.invalid"
+                />
+                @if (apoderadoForm.get('documento')?.touched && apoderadoForm.get('documento')?.invalid) {
+                  <div class="invalid-feedback">El documento es obligatorio.</div>
+                }
+              </div>
+
+              <!-- Teléfono -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Teléfono de Contacto</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="Ej. 944123456"
+                  formControlName="telefono"
+                />
+              </div>
+
+              <!-- Correo -->
+              <div class="col-12">
+                <label class="form-label fw-medium">Correo Electrónico (Usuario) <span class="text-danger">*</span></label>
+                <input
+                  type="email"
+                  class="form-control"
+                  placeholder="Ej. apoderado@correo.com"
+                  formControlName="correo"
+                  [class.is-invalid]="apoderadoForm.get('correo')?.touched && apoderadoForm.get('correo')?.invalid"
+                />
+                @if (apoderadoForm.get('correo')?.touched && apoderadoForm.get('correo')?.invalid) {
+                  <div class="invalid-feedback">Ingrese un correo válido.</div>
+                }
+              </div>
+
+              <!-- Contraseña Inicial -->
+              <div class="col-12">
+                <label class="form-label fw-medium">Contraseña Inicial para la Intranet <span class="text-danger">*</span></label>
+                <input
+                  type="text"
+                  class="form-control"
+                  formControlName="password"
+                  [class.is-invalid]="apoderadoForm.get('password')?.touched && apoderadoForm.get('password')?.invalid"
+                />
+                <small class="text-muted">Por defecto: <code>Colegio2026*</code> (mínimo 8 caracteres).</small>
+              </div>
+            </div>
+
+            <div class="alert alert-info small mt-3 mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Se creará automáticamente la cuenta de usuario con rol <strong>APODERADO</strong> y su registro en la tabla <code>apoderados</code>.
+            </div>
+          </div>
+
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary" [disabled]="guardando()">
+              @if (guardando()) {
+                <span class="spinner-border spinner-border-sm me-1"></span> Guardando...
+              } @else {
+                <i class="bi bi-save me-1"></i> Registrar Apoderado
+              }
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

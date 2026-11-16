@@ -1,0 +1,397 @@
+﻿<div class="container-fluid p-0">
+  <!-- Cabecera de la sección -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-person-lines-fill text-danger me-2"></i> Mantenimiento de Alumnos
+      </h3>
+      <p class="text-muted mb-0 small">
+        Consulta, registro y administración de estudiantes en la base de datos MySQL (Tabla <code>alumnos</code>)
+      </p>
+    </div>
+
+    @if (authService.hasRole('ADMIN')) {
+      <button (click)="abrirModalCrear()" class="btn btn-primary d-flex align-items-center justify-content-center shadow-sm">
+        <i class="bi bi-person-plus-fill me-2"></i> Nuevo Alumno
+      </button>
+    }
+  </div>
+
+  <!-- Alertas de éxito y error -->
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeExito() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeError() }}</div>
+      <button type="button" class="btn-close" (click)="mensajeError.set(null)" aria-label="Close"></button>
+    </div>
+  }
+
+  <!-- Tarjeta con Tabla y Filtros -->
+  <div class="card border-0 shadow-sm">
+    <div class="card-header bg-white py-3 border-0">
+      <div class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+            <input
+              type="text"
+              class="form-control border-start-0"
+              placeholder="Buscar por código, nombres o apellidos..."
+              [ngModel]="filtroTexto()"
+              (ngModelChange)="filtroTexto.set($event)"
+            />
+          </div>
+        </div>
+        <div class="col-12 col-md-7 text-md-end text-muted small">
+          Mostrando <strong>{{ alumnosFiltrados.length }}</strong> de <strong>{{ alumnos().length }}</strong> registros
+        </div>
+      </div>
+    </div>
+
+    <div class="card-body p-0">
+      @if (isLoading()) {
+        <div class="text-center py-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <p class="mt-2 text-muted small">Consultando alumnos en la base de datos...</p>
+        </div>
+      } @else if (alumnosFiltrados.length === 0) {
+        <div class="text-center py-5">
+          <i class="bi bi-inbox display-4 text-muted"></i>
+          <p class="mt-2 text-muted">No se encontraron alumnos registrados.</p>
+        </div>
+      } @else {
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Código</th>
+                <th>Estudiante</th>
+                <th>Nacimiento</th>
+                <th>Sexo</th>
+                <th>Estado</th>
+                <th>Apoderado(s)</th>
+                <th class="text-end pe-4">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (alumno of alumnosFiltrados; track alumno.id) {
+                <tr>
+                  <td class="ps-4 fw-semibold text-primary">
+                    {{ alumno.codigoAlumno }}
+                  </td>
+                  <td>
+                    <div class="fw-bold">{{ alumno.nombres }} {{ alumno.apellidos }}</div>
+                    <small class="text-muted">ID: {{ alumno.id }}</small>
+                  </td>
+                  <td>{{ alumno.fechaNacimiento }}</td>
+                  <td>
+                    <span class="badge" [ngClass]="alumno.sexo === 'M' ? 'bg-info-subtle text-info' : 'bg-danger-subtle text-danger'">
+                      {{ alumno.sexo === 'M' ? 'Masculino' : 'Femenino' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      class="badge"
+                      [ngClass]="alumno.estado === 'ACTIVO' ? 'bg-success-subtle text-success border border-success' : 'bg-secondary-subtle text-secondary border border-secondary'"
+                    >
+                      {{ alumno.estado }}
+                    </span>
+                  </td>
+                  <td>
+                    @if (alumno.apoderados && alumno.apoderados.length > 0) {
+                      @for (ap of alumno.apoderados; track ap.apoderadoId) {
+                        <div class="small">
+                          <i class="bi bi-person-check-fill text-success me-1"></i>
+                          <strong>{{ ap.nombreCompleto }}</strong> ({{ ap.parentesco }})
+                          @if (ap.contactoPrincipal) {
+                            <span class="badge bg-primary text-white ms-1" style="font-size: 0.65rem;">Principal</span>
+                          }
+                        </div>
+                      }
+                    } @else {
+                      <span class="text-muted fst-italic small">Sin vincular</span>
+                    }
+                  </td>
+                  <td class="text-end pe-4">
+                    <div class="btn-group btn-group-sm">
+                      <!-- Ver Notas -->
+                      <button
+                        (click)="verNotas(alumno)"
+                        class="btn btn-outline-info"
+                        title="Ver Notas"
+                      >
+                        <i class="bi bi-award"></i>
+                      </button>
+
+                      @if (authService.hasRole('ADMIN')) {
+                        <!-- Vincular Apoderado -->
+                        <button
+                          (click)="abrirModalVincular(alumno)"
+                          class="btn btn-outline-success"
+                          title="Vincular Apoderado"
+                        >
+                          <i class="bi bi-link-45deg"></i>
+                        </button>
+
+                        <!-- Editar -->
+                        <button
+                          (click)="abrirModalEditar(alumno)"
+                          class="btn btn-outline-primary"
+                          title="Editar Alumno"
+                        >
+                          <i class="bi bi-pencil"></i>
+                        </button>
+
+                        <!-- Eliminar (Baja Lógica) -->
+                        @if (alumno.estado === 'ACTIVO') {
+                          <button
+                            (click)="eliminarAlumno(alumno)"
+                            class="btn btn-outline-danger"
+                            title="Dar de baja (RETIRADO)"
+                          >
+                            <i class="bi bi-trash"></i>
+                          </button>
+                        }
+                      }
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+
+<!-- MODAL CREAR / EDITAR ALUMNO -->
+@if (modalAlumnoAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi" [ngClass]="editandoId() ? 'bi-pencil-square' : 'bi-person-plus-fill'"></i>
+            {{ editandoId() ? 'Editar Alumno' : 'Registrar Nuevo Alumno' }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModalAlumno()"></button>
+        </div>
+
+        <form [formGroup]="alumnoForm" (ngSubmit)="guardarAlumno()">
+          <div class="modal-body p-4">
+            <!-- Código Alumno -->
+            <div class="mb-3">
+              <label class="form-label fw-medium">Código de Alumno <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ej. AL-2026-010"
+                formControlName="codigoAlumno"
+                [class.is-invalid]="alumnoForm.get('codigoAlumno')?.touched && alumnoForm.get('codigoAlumno')?.invalid"
+              />
+              @if (alumnoForm.get('codigoAlumno')?.touched && alumnoForm.get('codigoAlumno')?.invalid) {
+                <div class="invalid-feedback">El código es requerido (máx. 20 caracteres).</div>
+              }
+            </div>
+
+            <!-- Nombres -->
+            <div class="mb-3">
+              <label class="form-label fw-medium">Nombres <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ej. Diego Fabián"
+                formControlName="nombres"
+                [class.is-invalid]="alumnoForm.get('nombres')?.touched && alumnoForm.get('nombres')?.invalid"
+              />
+              @if (alumnoForm.get('nombres')?.touched && alumnoForm.get('nombres')?.invalid) {
+                <div class="invalid-feedback">Los nombres son requeridos.</div>
+              }
+            </div>
+
+            <!-- Apellidos -->
+            <div class="mb-3">
+              <label class="form-label fw-medium">Apellidos <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ej. Mera Alvarado"
+                formControlName="apellidos"
+                [class.is-invalid]="alumnoForm.get('apellidos')?.touched && alumnoForm.get('apellidos')?.invalid"
+              />
+              @if (alumnoForm.get('apellidos')?.touched && alumnoForm.get('apellidos')?.invalid) {
+                <div class="invalid-feedback">Los apellidos son requeridos.</div>
+              }
+            </div>
+
+            <div class="row g-3">
+              <!-- Fecha de Nacimiento -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Fecha de Nacimiento <span class="text-danger">*</span></label>
+                <input
+                  type="date"
+                  class="form-control"
+                  formControlName="fechaNacimiento"
+                  [class.is-invalid]="alumnoForm.get('fechaNacimiento')?.touched && alumnoForm.get('fechaNacimiento')?.invalid"
+                />
+                @if (alumnoForm.get('fechaNacimiento')?.touched && alumnoForm.get('fechaNacimiento')?.invalid) {
+                  <div class="invalid-feedback">Debe ser una fecha pasada.</div>
+                }
+              </div>
+
+              <!-- Sexo -->
+              <div class="col-12 col-sm-6">
+                <label class="form-label fw-medium">Sexo <span class="text-danger">*</span></label>
+                <select class="form-select" formControlName="sexo">
+                  <option value="M">Masculino</option>
+                  <option value="F">Femenino</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalAlumno()">Cancelar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi bi-save me-1"></i> Guardar en BD
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL VINCULAR APODERADO -->
+@if (modalVincularAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-link-45deg me-1"></i> Vincular Apoderado
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModalVincular()"></button>
+        </div>
+
+        <form [formGroup]="vincularForm" (ngSubmit)="guardarVinculacion()">
+          <div class="modal-body p-4">
+            <div class="alert alert-light border mb-3">
+              <small class="text-muted d-block">Estudiante seleccionado:</small>
+              <strong>{{ alumnoParaVincular()?.nombres }} {{ alumnoParaVincular()?.apellidos }}</strong>
+              ({{ alumnoParaVincular()?.codigoAlumno }})
+            </div>
+
+            <!-- Seleccionar Apoderado -->
+            <div class="mb-3">
+              <label class="form-label fw-medium">Apoderado Registrado <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="apoderadoId">
+                <option [ngValue]="null">-- Seleccione un apoderado --</option>
+                @for (ap of apoderados(); track ap.id) {
+                  <option [ngValue]="ap.id">
+                    {{ ap.nombres }} {{ ap.apellidos }} (Doc: {{ ap.documento }})
+                  </option>
+                }
+              </select>
+            </div>
+
+            <!-- Parentesco -->
+            <div class="mb-3">
+              <label class="form-label fw-medium">Parentesco <span class="text-danger">*</span></label>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Ej. Madre, Padre, Tutor, Tía"
+                formControlName="parentesco"
+              />
+            </div>
+
+            <!-- Contacto Principal -->
+            <div class="form-check form-switch mb-2">
+              <input class="form-check-input" type="checkbox" id="contactoPrincipal" formControlName="contactoPrincipal">
+              <label class="form-check-label" for="contactoPrincipal">Es el contacto principal para emergencias</label>
+            </div>
+          </div>
+
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalVincular()">Cancelar</button>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-check-lg me-1"></i> Guardar Vínculo
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- MODAL VER NOTAS DEL ALUMNO -->
+@if (modalNotasAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-award-fill text-warning me-2"></i> Calificaciones de {{ alumnoSeleccionadoNotas()?.nombres }} {{ alumnoSeleccionadoNotas()?.apellidos }}
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModalNotas()"></button>
+        </div>
+        <div class="modal-body p-4">
+          @if (cargandoNotas()) {
+            <div class="text-center py-4">
+              <div class="spinner-border text-primary" role="status"></div>
+              <p class="mt-2 text-muted small">Cargando libreta de notas...</p>
+            </div>
+          } @else if (notasAlumno().length === 0) {
+            <div class="alert alert-info mb-0">
+              <i class="bi bi-info-circle me-2"></i> No se registran calificaciones para este alumno todavía.
+            </div>
+          } @else {
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                  <tr>
+                    <th>Curso</th>
+                    <th class="text-center">Periodo</th>
+                    <th class="text-center">Nota (0-20)</th>
+                    <th>Docente</th>
+                    <th>Observación</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (n of notasAlumno(); track n.id) {
+                    <tr>
+                      <td class="fw-semibold">{{ n.curso }}</td>
+                      <td class="text-center"><span class="badge bg-secondary">Bimestre {{ n.periodo }}</span></td>
+                      <td class="text-center">
+                        <span class="badge fs-6" [ngClass]="n.nota >= 11 ? 'bg-success' : 'bg-danger'">
+                          {{ n.nota }}
+                        </span>
+                      </td>
+                      <td><small>{{ n.docente }}</small></td>
+                      <td><small class="text-muted">{{ n.observacion || '-' }}</small></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalNotas()">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,100 @@
+﻿<div class="container-fluid p-0">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-door-open-fill text-danger me-2"></i> Aulas y Grados Académicos
+      </h3>
+      <p class="text-muted mb-0 small">
+        Distribución de secciones y control de aforo por grado &bull; Tabla <code>aulas</code>
+      </p>
+    </div>
+
+    @if (authService.hasRole('ADMIN')) {
+      <button (click)="abrirModal()" class="btn btn-primary d-flex align-items-center shadow-sm">
+        <i class="bi bi-plus-circle me-2"></i> Nueva Aula
+      </button>
+    }
+  </div>
+
+  @if (mensajeExito()) {
+    <div class="alert alert-success alert-dismissible fade show shadow-sm">
+      <i class="bi bi-check-circle-fill me-2"></i> {{ mensajeExito() }}
+      <button type="button" class="btn-close" (click)="mensajeExito.set(null)"></button>
+    </div>
+  }
+
+  @if (mensajeError()) {
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ mensajeError() }}
+      <button type="button" class="btn-close" (click)="mensajeError.set(null)"></button>
+    </div>
+  }
+
+  <div class="row g-3">
+    @for (a of aulas(); track a.id) {
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100 border-0 shadow-sm border-top border-4 border-primary">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-primary text-white">Año {{ a.anio }}</span>
+              <span class="badge bg-secondary">Sección {{ a.seccion }}</span>
+            </div>
+            <h4 class="fw-bold text-dark mb-1">{{ a.grado }}</h4>
+            <div class="small text-muted mb-2">Nivel Primario: Grado {{ a.nivel }}°</div>
+            <div class="d-flex align-items-center text-success small fw-semibold">
+              <i class="bi bi-people-fill me-1"></i> Aforo máx: {{ a.capacidad }} alumnos
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  </div>
+</div>
+
+<!-- Modal Nueva Aula -->
+@if (modalAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-plus-circle me-1"></i> Crear Nueva Aula</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()"></button>
+        </div>
+        <form [formGroup]="aulaForm" (ngSubmit)="guardar()">
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-medium">Grado Académico <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="gradoId">
+                @for (g of grados(); track g.id) {
+                  <option [ngValue]="g.id">{{ g.nombre }} ({{ g.nivel }}° Grado)</option>
+                }
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-medium">Año Lectivo <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="anioLectivoId">
+                @for (an of anios(); track an.id) {
+                  <option [ngValue]="an.id">{{ an.anio }} {{ an.activo ? '(Activo)' : '' }}</option>
+                }
+              </select>
+            </div>
+            <div class="row g-3">
+              <div class="col-6">
+                <label class="form-label fw-medium">Sección <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" formControlName="seccion" placeholder="A, B, C..." />
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-medium">Aforo Máximo <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" formControlName="capacidad" />
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Registrar Aula</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
