@@ -18,4 +18,8 @@ export class AsistenciaService {
   registrarAsistencia(data: AsistenciaRequest): Observable<AsistenciaResponse> {
     return this.http.post<AsistenciaResponse>(this.apiUrl, data);
   }
+
+  getAsistenciasPorMatricula(matriculaId: number): Observable<AsistenciaResponse[]> {
+    return this.http.get<AsistenciaResponse[]>(`${this.apiUrl}/matricula/${matriculaId}`);
+  }
 }

@@ -1,142 +1,614 @@
 ﻿<div class="container-fluid p-0">
-  <div class="mb-4">
-    <h3 class="fw-bold mb-1 text-dark">
-      <i class="bi bi-calendar-check-fill text-danger me-2"></i> Control Diario de Asistencia
-    </h3>
-    <p class="text-muted mb-0 small">
-      Registro y seguimiento de asistencia por aula y fecha &bull; Tabla <code>asistencias</code>
-    </p>
+  <!-- Cabecera principal -->
+  <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-3 gap-2">
+    <div>
+      <h3 class="fw-bold mb-1 text-dark">
+        <i class="bi bi-calendar-check-fill text-danger me-2"></i>
+        {{ isDocente() ? 'Control de Asistencia por Curso' : 'Gestión y Control de Asistencia' }}
+      </h3>
+      <p class="text-muted mb-0 small">
+        Registro en tiempo real por curso, aula y fecha &bull; I.E. N.° 80892 Santa Rosa de Lima
+      </p>
+    </div>
+
+    <!-- Indicador de progreso / Stepper de 3 Pasos -->
+    <div class="step-indicator border">
+      <div class="step-item" [class.completed]="cursoSeleccionado()" [class.active]="!cursoSeleccionado()" (click)="irAPaso(1)">
+        <span class="step-badge">1</span>
+        <span>Cursos</span>
+      </div>
+      <i class="bi bi-chevron-right mx-2 text-muted small"></i>
+      <div class="step-item" [class.completed]="aulaSeleccionada()" [class.active]="cursoSeleccionado() && !aulaSeleccionada()" (click)="cursoSeleccionado() ? irAPaso(2) : null">
+        <span class="step-badge">2</span>
+        <span>Aulas</span>
+      </div>
+      <i class="bi bi-chevron-right mx-2 text-muted small"></i>
+      <div class="step-item" [class.active]="aulaSeleccionada()">
+        <span class="step-badge">3</span>
+        <span>Asistencia Diaria</span>
+      </div>
+    </div>
   </div>
 
+  <!-- Mensajes de alerta -->
   @if (mensajeExito()) {
-    <div class="alert alert-success alert-dismissible fade show shadow-sm">
-      <i class="bi bi-check-circle-fill me-2"></i> {{ mensajeExito() }}
+    <div class="alert alert-success alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeExito() }}</div>
       <button type="button" class="btn-close" (click)="mensajeExito.set(null)"></button>
     </div>
   }
 
   @if (mensajeError()) {
-    <div class="alert alert-danger alert-dismissible fade show shadow-sm">
-      <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ mensajeError() }}
+    <div class="alert alert-danger alert-dismissible fade show d-flex align-items-center shadow-sm" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+      <div class="flex-grow-1">{{ mensajeError() }}</div>
       <button type="button" class="btn-close" (click)="mensajeError.set(null)"></button>
     </div>
   }
 
-  <div class="row g-4">
-    <!-- Registrar Asistencia (Docente) -->
-    <div class="col-12 col-lg-5">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white py-3 border-0">
-          <h5 class="fw-bold mb-0 text-dark">
-            <i class="bi bi-pencil-square text-primary me-2"></i> Marcar Asistencia
-          </h5>
+  <!-- ========================================== -->
+  <!-- PASO 1: SELECCIONAR CURSO (Tarjetas Flotantes) -->
+  <!-- ========================================== -->
+  @if (!cursoSeleccionado()) {
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 border-0">
+        <div class="d-flex align-items-center">
+          <div class="rounded-circle bg-danger-subtle text-danger p-2 me-3">
+            <i class="bi bi-journal-check fs-4"></i>
+          </div>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">Paso 1: Selecciona el Curso a Controlar</h5>
+            <small class="text-muted">
+              {{ isDocente() ? 'Mostrando únicamente las materias asignadas a tu perfil docente' : 'Mostrando todas las áreas curriculares oficiales del colegio' }}
+            </small>
+          </div>
         </div>
-        <div class="card-body">
-          <form [formGroup]="asistForm" (ngSubmit)="guardar()">
-            <div class="mb-3">
-              <label class="form-label fw-medium">Estudiante Matriculado <span class="text-danger">*</span></label>
-              <select class="form-select" formControlName="matriculaId">
-                <option [ngValue]="null">-- Seleccione alumno --</option>
-                @for (m of matriculasAula(); track m.id) {
-                  <option [ngValue]="m.id">{{ m.alumno }} ({{ m.codigoAlumno }}) - {{ m.grado }} "{{ m.seccion }}"</option>
-                }
-              </select>
-            </div>
+      </div>
 
-            <div class="row g-3 mb-3">
-              <div class="col-6">
-                <label class="form-label fw-medium">Fecha <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" formControlName="fecha" />
+      <div class="card-body p-4 pt-1">
+        @if (cursosDisponibles().length === 0) {
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-journal-x display-4 text-secondary"></i>
+            <h6 class="mt-2 fw-bold">No tienes cursos asignados</h6>
+            <p class="small mb-0">Comunícate con la dirección para asignar materias a tus secciones.</p>
+          </div>
+        } @else {
+          <div class="row g-3">
+            @for (c of cursosDisponibles(); track c.id) {
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100 card-flotante border-0 shadow-sm border-start border-4 border-primary p-3"
+                     (click)="seleccionarCurso(c)">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-primary text-white font-monospace fs-6">{{ c.codigo }}</span>
+                    <i class="bi bi-chevron-right text-primary fs-5"></i>
+                  </div>
+                  <h5 class="fw-bold text-dark mb-1">{{ c.nombre }}</h5>
+                  <p class="small text-muted mb-2">Área Curricular Oficial Primaria</p>
+
+                  <!-- Secciones donde se enseña este curso -->
+                  @if (getAulasDeCurso(c.id).length > 0) {
+                    <div class="mb-3">
+                      <small class="text-muted d-block fw-semibold" style="font-size: 0.72rem;">Secciones asignadas:</small>
+                      <div class="d-flex flex-wrap gap-1 mt-1">
+                        @for (aulaName of getAulasDeCurso(c.id); track aulaName) {
+                          <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">
+                            {{ aulaName }}
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                    <span class="small fw-semibold text-primary">
+                      <i class="bi bi-hand-index-thumb me-1"></i> Seleccionar curso
+                    </span>
+                    <span class="small text-muted">
+                      {{ getAulasDeCurso(c.id).length }} secciones
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div class="col-6">
-                <label class="form-label fw-medium">Estado <span class="text-danger">*</span></label>
-                <select class="form-select" formControlName="estado">
-                  <option value="ASISTIO">ASISTIÓ</option>
-                  <option value="TARDANZA">TARDANZA</option>
-                  <option value="FALTA">FALTA</option>
-                  <option value="JUSTIFICADA">JUSTIFICADA</option>
-                </select>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ========================================== -->
+  <!-- PASO 2: SELECCIONAR AULA (Tarjetas Flotantes) -->
+  <!-- ========================================== -->
+  @if (cursoSeleccionado() && !aulaSeleccionada()) {
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+          <button class="btn btn-outline-secondary btn-sm me-3" (click)="irAPaso(1)">
+            <i class="bi bi-arrow-left me-1"></i> Cursos
+          </button>
+          <div>
+            <h5 class="fw-bold mb-0 text-dark">
+              Paso 2: Selecciona la Sección para <span class="text-primary">{{ cursoSeleccionado()?.nombre }}</span>
+            </h5>
+            <small class="text-muted">Aulas donde se imparte esta materia</small>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body p-4 pt-1">
+        @if (aulasDisponibles().length === 0) {
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-building-x display-4 text-secondary"></i>
+            <h6 class="mt-2 fw-bold">No hay aulas registradas para este curso</h6>
+            <p class="small mb-0">Comunícate con el administrador para asignar este curso a un aula.</p>
+          </div>
+        } @else {
+          <div class="row g-3">
+            @for (au of aulasDisponibles(); track au.id) {
+              <div class="col-12 col-md-6 col-lg-4">
+                <div class="card h-100 card-flotante border-0 shadow-sm border-start border-4 border-success p-3"
+                     (click)="seleccionarAula(au)">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="badge bg-success text-white fs-6">
+                      {{ au.grado }} - Sección "{{ au.seccion }}"
+                    </span>
+                    <span class="badge bg-light text-secondary border">Año {{ au.anio }}</span>
+                  </div>
+
+                  <h5 class="fw-bold text-dark mb-1">{{ au.grado }} de Primaria</h5>
+                  <p class="small text-muted mb-3">Sección "{{ au.seccion }}" &bull; Turno Mañana</p>
+
+                  <div class="mt-auto pt-2 border-top d-flex justify-content-between align-items-center">
+                    <span class="small text-muted">
+                      <i class="bi bi-people-fill text-success me-1"></i>
+                      <strong>{{ getTotalAlumnosAula(au.id) }}</strong> estudiantes
+                    </span>
+                    <span class="small fw-semibold text-success">
+                      Tomar Asistencia <i class="bi bi-arrow-right ms-1"></i>
+                    </span>
+                  </div>
+                </div>
               </div>
-            </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
 
-            <div class="mb-4">
-              <label class="form-label fw-medium">Observación (Opcional)</label>
-              <input type="text" class="form-control" formControlName="observacion" placeholder="Ej. Llegó a las 8:20 AM con justificación" />
-            </div>
-
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">
-              <i class="bi bi-save me-1"></i> Guardar Asistencia en BD
+  <!-- ========================================== -->
+  <!-- PASO 3: REGISTRO DIARIO DE ASISTENCIA -->
+  <!-- ========================================== -->
+  @if (cursoSeleccionado() && aulaSeleccionada(); as aula) {
+    <!-- Barra superior de Curso & Aula & Selector de Fecha -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body py-3">
+        <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+          <div class="d-flex align-items-center">
+            <button class="btn btn-outline-secondary btn-sm me-3" (click)="irAPaso(2)">
+              <i class="bi bi-arrow-left me-1"></i> Cambiar Sección
             </button>
-          </form>
+            <div>
+              <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="badge bg-primary fs-6">{{ cursoSeleccionado()?.nombre }}</span>
+                <span class="badge bg-success-subtle text-success border fs-6">
+                  {{ aulaSeleccionada()?.grado }} "{{ aulaSeleccionada()?.seccion }}"
+                </span>
+                <span class="badge bg-light text-secondary border">Año {{ aulaSeleccionada()?.anio }}</span>
+              </div>
+              <small class="text-muted d-block mt-1">
+                Total: <strong>{{ alumnosDelAula().length }}</strong> estudiantes en esta clase
+              </small>
+            </div>
+          </div>
+
+          <!-- Selector de Fecha Interactivo (Con Hora Local de Perú) -->
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <div class="btn-group btn-group-sm" role="group">
+              <button class="btn btn-outline-secondary" (click)="cambiarFecha(-1)" title="Día anterior">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button class="btn btn-outline-secondary" (click)="irAAyer()">Ayer</button>
+              <button class="btn btn-outline-secondary" (click)="irAHoy()">Hoy</button>
+              <button class="btn btn-outline-secondary" (click)="cambiarFecha(1)" [disabled]="esFechaFutura()" title="Día siguiente">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </div>
+
+            <div class="d-flex align-items-center bg-light px-2 py-1 rounded border">
+              <i class="bi bi-calendar3 text-danger me-2"></i>
+              <input
+                type="date"
+                class="form-control form-control-sm border-0 bg-transparent fw-semibold"
+                style="width: 140px;"
+                [ngModel]="fecha()"
+                (ngModelChange)="fecha.set($event); consultarAsistencias()"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Consulta de Asistencia por Fecha y Aula -->
-    <div class="col-12 col-lg-7">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-header bg-white py-3 border-0">
-          <h5 class="fw-bold mb-0 text-dark">
-            <i class="bi bi-search text-success me-2"></i> Reporte Diario del Aula
-          </h5>
-        </div>
-        <div class="card-body">
-          <div class="row g-2 mb-3">
-            <div class="col-12 col-sm-6">
-              <label class="form-label small fw-semibold">Seleccionar Aula:</label>
-              <select
-                class="form-select"
-                [ngModel]="aulaConsultaId()"
-                (ngModelChange)="aulaConsultaId.set($event); consultar()"
-              >
-                @for (au of aulas(); track au.id) {
-                  <option [ngValue]="au.id">{{ au.grado }} - Sección "{{ au.seccion }}" (Año {{ au.anio }})</option>
-                }
-              </select>
+    <!-- Tarjetas de Estadísticas en Vivo (KPIs del día) -->
+    <div class="row g-3 mb-3">
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4 border-success p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted small fw-semibold d-block">Presentes</span>
+              <h3 class="fw-bold text-success mb-0">{{ resumenDia().asistio }}</h3>
             </div>
-            <div class="col-12 col-sm-6">
-              <label class="form-label small fw-semibold">Fecha:</label>
-              <input
-                type="date"
-                class="form-control"
-                [ngModel]="fechaConsulta()"
-                (ngModelChange)="fechaConsulta.set($event); consultar()"
-              />
+            <div class="rounded-circle bg-success-subtle text-success p-2">
+              <i class="bi bi-check-circle-fill fs-4"></i>
             </div>
           </div>
+        </div>
+      </div>
 
-          @if (cargando()) {
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4 border-warning p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted small fw-semibold d-block">Tardanzas</span>
+              <h3 class="fw-bold text-warning mb-0">{{ resumenDia().tardanza }}</h3>
+            </div>
+            <div class="rounded-circle bg-warning-subtle text-warning p-2">
+              <i class="bi bi-clock-fill fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4 border-danger p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted small fw-semibold d-block">Faltas</span>
+              <h3 class="fw-bold text-danger mb-0">{{ resumenDia().falta }}</h3>
+            </div>
+            <div class="rounded-circle bg-danger-subtle text-danger p-2">
+              <i class="bi bi-x-circle-fill fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-6 col-md-3">
+        <div class="card border-0 shadow-sm border-start border-4 border-info p-3">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <span class="text-muted small fw-semibold d-block">Justificadas</span>
+              <h3 class="fw-bold text-info mb-0">{{ resumenDia().justificada }}</h3>
+            </div>
+            <div class="rounded-circle bg-info-subtle text-info p-2">
+              <i class="bi bi-file-earmark-medical-fill fs-4"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de progreso de asistencia del aula -->
+    <div class="card border-0 shadow-sm mb-3">
+      <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+          <small class="fw-semibold text-muted">
+            <i class="bi bi-pie-chart-fill me-1 text-primary"></i>
+            Asistencia Global de la Clase: <strong>{{ resumenDia().porcentaje }}%</strong>
+          </small>
+          <small class="text-muted">
+            Marcados: {{ resumenDia().total - resumenDia().sinMarcar }} / {{ resumenDia().total }}
+            @if (resumenDia().sinMarcar > 0) {
+              <span class="badge bg-secondary-subtle text-secondary ms-1">({{ resumenDia().sinMarcar }} sin registrar)</span>
+            }
+          </small>
+        </div>
+        <div class="progress" style="height: 8px;">
+          <div class="progress-bar bg-success" role="progressbar" [style.width.%]="(resumenDia().asistio / (resumenDia().total || 1)) * 100"></div>
+          <div class="progress-bar bg-warning" role="progressbar" [style.width.%]="(resumenDia().tardanza / (resumenDia().total || 1)) * 100"></div>
+          <div class="progress-bar bg-info" role="progressbar" [style.width.%]="(resumenDia().justificada / (resumenDia().total || 1)) * 100"></div>
+          <div class="progress-bar bg-danger" role="progressbar" [style.width.%]="(resumenDia().falta / (resumenDia().total || 1)) * 100"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Barra de Acciones y Tabla de Estudiantes -->
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white py-3 border-0 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2">
+        <!-- Acciones rápidas para el docente -->
+        <div class="d-flex flex-wrap align-items-center gap-2">
+          <button class="btn btn-success btn-sm shadow-sm d-flex align-items-center"
+                  [disabled]="marcandoTodos() || cargando()"
+                  (click)="marcarTodosAsistio()">
+            @if (marcandoTodos()) {
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+              Marcando a todos...
+            } @else {
+              <i class="bi bi-check2-all me-2 fs-6"></i>
+              Marcar a Todos como ASISTIÓ
+            }
+          </button>
+
+          <button class="btn btn-outline-secondary btn-sm" (click)="consultarAsistencias()" [disabled]="cargando()" title="Refrescar">
+            <i class="bi bi-arrow-clockwise" [class.spin]="cargando()"></i>
+          </button>
+        </div>
+
+        <!-- Buscador dentro del aula -->
+        <div class="input-group input-group-sm" style="max-width: 280px;">
+          <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+          <input
+            type="text"
+            class="form-control border-start-0 bg-light"
+            placeholder="Buscar por estudiante o código..."
+            [ngModel]="filtroTexto()"
+            (ngModelChange)="filtroTexto.set($event)"
+          />
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        @if (cargando()) {
+          <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted small">Cargando registros de asistencia...</p>
+          </div>
+        } @else if (alumnosDelAula().length === 0) {
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+            <p class="mb-0">No se encontraron estudiantes para esta búsqueda.</p>
+          </div>
+        } @else {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4" style="width: 50px;">#</th>
+                  <th style="width: 130px;">Código</th>
+                  <th>Estudiante</th>
+                  <th class="text-center" style="min-width: 380px;">Control de Asistencia (1 Clic)</th>
+                  <th>Observación / Nota</th>
+                  <th class="text-end pe-4" style="width: 110px;">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of alumnosDelAula(); track m.id; let idx = $index) {
+                  @let asist = getAsistenciaAlumno(m.id);
+                  <tr>
+                    <td class="ps-4 text-muted small">{{ idx + 1 }}</td>
+                    <td>
+                      <span class="font-monospace fw-bold text-primary">{{ m.codigoAlumno }}</span>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="avatar-circle me-2 bg-primary-subtle text-primary fw-bold">
+                          {{ m.alumno.charAt(0) }}
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark">{{ m.alumno }}</div>
+                          <small class="text-muted">Estado: <span class="badge bg-success-subtle text-success border">ACTIVA</span></small>
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Chips interactivos de Asistencia Instantánea -->
+                    <td class="text-center">
+                      @if (guardandoAlumnoId() === m.id) {
+                        <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                      } @else {
+                        <div class="btn-group btn-group-sm" role="group">
+                          <!-- ASISTIO -->
+                          <button
+                            type="button"
+                            class="btn chip-btn"
+                            [class.btn-success]="asist?.estado === 'ASISTIO'"
+                            [class.btn-outline-success]="asist?.estado !== 'ASISTIO'"
+                            (click)="marcarAsistencia(m, 'ASISTIO')"
+                            title="Marcar Asistió"
+                          >
+                            <i class="bi bi-check-circle-fill me-1"></i> Asistió
+                          </button>
+
+                          <!-- TARDANZA -->
+                          <button
+                            type="button"
+                            class="btn chip-btn"
+                            [class.btn-warning]="asist?.estado === 'TARDANZA'"
+                            [class.btn-outline-warning]="asist?.estado !== 'TARDANZA'"
+                            (click)="marcarAsistencia(m, 'TARDANZA')"
+                            title="Marcar Tardanza"
+                          >
+                            <i class="bi bi-clock-fill me-1"></i> Tardanza
+                          </button>
+
+                          <!-- FALTA -->
+                          <button
+                            type="button"
+                            class="btn chip-btn"
+                            [class.btn-danger]="asist?.estado === 'FALTA'"
+                            [class.btn-outline-danger]="asist?.estado !== 'FALTA'"
+                            (click)="marcarAsistencia(m, 'FALTA')"
+                            title="Marcar Falta"
+                          >
+                            <i class="bi bi-x-circle-fill me-1"></i> Falta
+                          </button>
+
+                          <!-- JUSTIFICADA -->
+                          <button
+                            type="button"
+                            class="btn chip-btn"
+                            [class.btn-info]="asist?.estado === 'JUSTIFICADA'"
+                            [class.btn-outline-info]="asist?.estado !== 'JUSTIFICADA'"
+                            (click)="marcarAsistencia(m, 'JUSTIFICADA')"
+                            title="Marcar Justificada"
+                          >
+                            <i class="bi bi-file-earmark-medical-fill me-1"></i> Justificada
+                          </button>
+                        </div>
+                      }
+                    </td>
+
+                    <!-- Observación -->
+                    <td>
+                      @if (asist?.observacion) {
+                        <div class="d-flex align-items-center gap-1">
+                          <span class="badge bg-light text-dark border text-truncate" style="max-width: 200px;" [title]="asist.observacion">
+                            <i class="bi bi-chat-left-text me-1 text-primary"></i> {{ asist.observacion }}
+                          </span>
+                          <button class="btn btn-link btn-sm p-0 text-secondary" (click)="abrirModalObservacion(m)" title="Editar nota">
+                            <i class="bi bi-pencil-square"></i>
+                          </button>
+                        </div>
+                      } @else {
+                        <button class="btn btn-sm btn-link text-decoration-none text-muted p-0" (click)="abrirModalObservacion(m)">
+                          <i class="bi bi-plus-circle me-1"></i> <small>Agregar nota</small>
+                        </button>
+                      }
+                    </td>
+
+                    <!-- Historial -->
+                    <td class="text-end pe-4">
+                      <button class="btn btn-sm btn-outline-secondary" (click)="abrirModalHistorial(m)" title="Ver Historial del Estudiante">
+                        <i class="bi bi-clock-history me-1"></i> Historial
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
+</div>
+
+<!-- ========================================== -->
+<!-- MODAL AGREGAR / EDITAR OBSERVACIÓN -->
+<!-- ========================================== -->
+@if (alumnoObservacion(); as alumno) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-chat-left-text-fill me-2"></i> Observación de Asistencia
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="alumnoObservacion.set(null)"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="mb-3">
+            <label class="form-label small text-muted fw-bold">Estudiante:</label>
+            <div class="fw-bold fs-6 text-dark">{{ alumno.alumno }} ({{ alumno.codigoAlumno }})</div>
+            <small class="text-muted">Materia: {{ cursoSeleccionado()?.nombre }} &bull; Fecha: {{ fecha() }}</small>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-medium">Detalle / Justificación:</label>
+            <textarea
+              class="form-control"
+              rows="3"
+              placeholder="Ej. Llegó a las 8:25 AM con justificación firmada por apoderado..."
+              [ngModel]="textoObservacion()"
+              (ngModelChange)="textoObservacion.set($event)"
+            ></textarea>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-outline-secondary" (click)="alumnoObservacion.set(null)">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="guardarObservacion()">
+            <i class="bi bi-save me-1"></i> Guardar Observación
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- ========================================== -->
+<!-- MODAL HISTORIAL DE ASISTENCIA DEL ALUMNO -->
+<!-- ========================================== -->
+@if (alumnoHistorial(); as alumno) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-dark text-white">
+          <h5 class="modal-title fw-bold">
+            <i class="bi bi-clock-history me-2"></i> Historial de Asistencias del Estudiante
+          </h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModalHistorial()"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+            <div>
+              <h5 class="fw-bold text-dark mb-0">{{ alumno.alumno }}</h5>
+              <small class="text-muted">Código: <strong>{{ alumno.codigoAlumno }}</strong> &bull; Aula: {{ alumno.grado }} "{{ alumno.seccion }}"</small>
+            </div>
+            <span class="badge bg-primary fs-6">Año {{ alumno.anio }}</span>
+          </div>
+
+          <!-- Resumen de Asistencias del Estudiante -->
+          @if (!cargandoHistorial() && historialAsistencias().length > 0) {
+            <div class="row g-2 mb-3">
+              <div class="col-3">
+                <div class="border rounded p-2 text-center bg-success-subtle">
+                  <small class="text-muted d-block" style="font-size: 0.72rem;">Asistencias</small>
+                  <strong class="text-success fs-5">{{ resumenHistorialAlumno().asistio }}</strong>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2 text-center bg-warning-subtle">
+                  <small class="text-muted d-block" style="font-size: 0.72rem;">Tardanzas</small>
+                  <strong class="text-warning fs-5">{{ resumenHistorialAlumno().tardanza }}</strong>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2 text-center bg-danger-subtle">
+                  <small class="text-muted d-block" style="font-size: 0.72rem;">Faltas</small>
+                  <strong class="text-danger fs-5">{{ resumenHistorialAlumno().falta }}</strong>
+                </div>
+              </div>
+              <div class="col-3">
+                <div class="border rounded p-2 text-center bg-info-subtle">
+                  <small class="text-muted d-block" style="font-size: 0.72rem;">% Puntualidad</small>
+                  <strong class="text-info fs-5">{{ resumenHistorialAlumno().porcentaje }}%</strong>
+                </div>
+              </div>
+            </div>
+          }
+
+          @if (cargandoHistorial()) {
             <div class="text-center py-4">
               <div class="spinner-border text-primary" role="status"></div>
-              <p class="mt-2 text-muted small">Consultando asistencia...</p>
+              <p class="small text-muted mt-2">Cargando historial...</p>
             </div>
-          } @else if (asistencias().length === 0) {
-            <div class="alert alert-light border text-center py-4">
-              <i class="bi bi-calendar-x fs-3 text-muted"></i>
-              <p class="mt-2 text-muted mb-0">No se encontraron registros de asistencia para esta aula y fecha.</p>
+          } @else if (historialAsistencias().length === 0) {
+            <div class="text-center py-4 text-muted">
+              <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
+              No se han registrado asistencias previas para este estudiante.
             </div>
           } @else {
-            <div class="table-responsive">
+            <div class="table-responsive" style="max-height: 350px;">
               <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+                <thead class="table-light sticky-top">
                   <tr>
-                    <th>Código</th>
-                    <th>Estudiante</th>
+                    <th>Fecha</th>
                     <th class="text-center">Estado</th>
                     <th>Observación</th>
                   </tr>
                 </thead>
                 <tbody>
-                  @for (asist of asistencias(); track asist.id) {
+                  @for (h of historialAsistencias(); track h.id) {
                     <tr>
-                      <td class="fw-semibold text-primary">{{ asist.codigoAlumno }}</td>
-                      <td class="fw-bold">{{ asist.alumno }}</td>
+                      <td class="fw-semibold text-dark">{{ h.fecha }}</td>
                       <td class="text-center">
-                        <span class="badge" [ngClass]="getBadgeClass(asist.estado)">
-                          {{ asist.estado }}
+                        <span class="badge" [ngClass]="getBadgeClass(h.estado)">
+                          {{ h.estado }}
                         </span>
                       </td>
-                      <td><small class="text-muted">{{ asist.observacion || '-' }}</small></td>
+                      <td class="text-muted small">{{ h.observacion || '-' }}</td>
                     </tr>
                   }
                 </tbody>
@@ -144,7 +616,10 @@
             </div>
           }
         </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary" (click)="cerrarModalHistorial()">Cerrar Historial</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
+}
