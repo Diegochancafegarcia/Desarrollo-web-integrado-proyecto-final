@@ -22,4 +22,8 @@ export class AsistenciaService {
   getAsistenciasPorMatricula(matriculaId: number): Observable<AsistenciaResponse[]> {
     return this.http.get<AsistenciaResponse[]>(`${this.apiUrl}/matricula/${matriculaId}`);
   }
+
+  getAsistenciasPorAlumno(alumnoId: number): Observable<AsistenciaResponse[]> {
+    return this.http.get<AsistenciaResponse[]>(`${this.apiUrl}/alumno/${alumnoId}`);
+  }
 }

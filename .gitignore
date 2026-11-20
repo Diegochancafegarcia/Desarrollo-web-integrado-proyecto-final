@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Angular build output
+.angular/
+dist/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.suo
+
+# System Files
+.DS_Store
+Thumbs.db
