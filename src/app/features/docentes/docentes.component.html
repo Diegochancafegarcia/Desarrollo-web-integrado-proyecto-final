@@ -8,6 +8,12 @@
         Plana docente de la institución &bull; Tabla <code>docentes</code>
       </p>
     </div>
+
+    @if (authService.hasRole('ADMIN')) {
+      <button (click)="abrirModalCrear()" class="btn btn-primary d-flex align-items-center shadow-sm">
+        <i class="bi bi-person-plus-fill me-2"></i> Nuevo Docente
+      </button>
+    }
   </div>
 
   @if (mensajeExito()) {
@@ -100,37 +106,73 @@
   </div>
 </div>
 
-<!-- Modal Editar Docente -->
+<!-- Modal Crear / Editar Docente -->
 @if (modalAbierto()) {
   <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content border-0 shadow">
         <div class="modal-header bg-primary-custom text-white">
-          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-1"></i> Editar Docente</h5>
+          <h5 class="modal-title fw-bold">
+            <i class="bi" [class.bi-person-plus-fill]="!docenteEditando()" [class.bi-pencil-square]="docenteEditando()"></i>
+            {{ docenteEditando() ? 'Editar Docente' : 'Registrar Nuevo Docente' }}
+          </h5>
           <button type="button" class="btn-close btn-close-white" (click)="cerrarModal()"></button>
         </div>
         <form [formGroup]="docenteForm" (ngSubmit)="guardar()">
           <div class="modal-body p-4">
-            <div class="alert alert-light border mb-3">
-              <strong>{{ docenteEditando()?.nombres }} {{ docenteEditando()?.apellidos }}</strong>
-              <small class="d-block text-muted">{{ docenteEditando()?.correo }}</small>
+            @if (docenteEditando()) {
+              <div class="alert alert-light border mb-3">
+                <strong>{{ docenteEditando()?.nombres }} {{ docenteEditando()?.apellidos }}</strong>
+                <small class="d-block text-muted">{{ docenteEditando()?.correo }}</small>
+              </div>
+            } @else {
+              <!-- Datos de cuenta de usuario (solo al crear) -->
+              <div class="row g-2 mb-3">
+                <div class="col-6">
+                  <label class="form-label fw-medium">Nombres <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" formControlName="nombres" placeholder="Ej. Juan" />
+                </div>
+                <div class="col-6">
+                  <label class="form-label fw-medium">Apellidos <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" formControlName="apellidos" placeholder="Ej. Pérez Gómez" />
+                </div>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-medium">Correo Institucional <span class="text-danger">*</span></label>
+                <input type="email" class="form-control" formControlName="correo" placeholder="ejemplo@santarosa.edu.pe" />
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label fw-medium">Contraseña Inicial</label>
+                <input type="text" class="form-control" formControlName="password" />
+                <small class="text-muted" style="font-size: 0.72rem;">Por defecto se asigna <code>Colegio2026*</code> con rol DOCENTE.</small>
+              </div>
+            }
+
+            <!-- Datos profesionales del docente -->
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label fw-medium">Código Docente <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" formControlName="codigoDocente" placeholder="DOC-2026-004" />
+              </div>
+              <div class="col-6">
+                <label class="form-label fw-medium">Teléfono</label>
+                <input type="text" class="form-control" formControlName="telefono" placeholder="Ej. 987654321" />
+              </div>
             </div>
-            <div class="mb-3">
-              <label class="form-label fw-medium">Código Docente <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" formControlName="codigoDocente" />
-            </div>
+
             <div class="mb-3">
               <label class="form-label fw-medium">Especialidad</label>
-              <input type="text" class="form-control" formControlName="especialidad" placeholder="Ej. Matemática y Ciencia" />
-            </div>
-            <div class="mb-3">
-              <label class="form-label fw-medium">Teléfono</label>
-              <input type="text" class="form-control" formControlName="telefono" placeholder="Ej. 987654321" />
+              <input type="text" class="form-control" formControlName="especialidad" placeholder="Ej. Matemática y Ciencia y Tecnología" />
             </div>
           </div>
           <div class="modal-footer bg-light">
             <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
-            <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Actualizar</button>
+            <button type="submit" class="btn btn-primary">
+              <i class="bi" [class.bi-save]="!docenteEditando()" [class.bi-check-lg]="docenteEditando()"></i>
+              {{ docenteEditando() ? 'Guardar Cambios' : 'Registrar Docente' }}
+            </button>
           </div>
         </form>
       </div>

@@ -19,8 +19,8 @@
         </a>
       </li>
 
-      <!-- Menú Mantenimientos (ADMIN, DIRECTOR, DOCENTE) -->
-      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR', 'DOCENTE'])) {
+      <!-- Menú Mantenimientos (ADMIN, DIRECTOR) -->
+      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR'])) {
         <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
           Mantenimientos Básicos
         </li>
@@ -30,9 +30,6 @@
             <span>Alumnos</span>
           </a>
         </li>
-      }
-
-      @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR'])) {
         <li class="nav-item mb-1">
           <a routerLink="/dashboard/docentes" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
             <i class="bi bi-person-badge-fill me-2 fs-5"></i>
@@ -68,6 +65,31 @@
           <a routerLink="/dashboard/matriculas" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
             <i class="bi bi-card-checklist me-2 fs-5"></i>
             <span>Matrículas</span>
+          </a>
+        </li>
+      }
+
+      <!-- Menú Mi Carga Lectiva (Solo para DOCENTE) -->
+      @if (authService.hasRole('DOCENTE') && !authService.hasAnyRole(['ADMIN', 'DIRECTOR'])) {
+        <li class="nav-header px-3 pt-3 pb-1 text-uppercase text-secondary" style="font-size: 0.7rem; font-weight: 700;">
+          Mi Carga Lectiva
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/cursos" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-journal-bookmark-fill me-2 fs-5"></i>
+            <span>Mis Cursos</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/aulas" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-door-open-fill me-2 fs-5"></i>
+            <span>Mis Aulas</span>
+          </a>
+        </li>
+        <li class="nav-item mb-1">
+          <a routerLink="/dashboard/alumnos" routerLinkActive="active" class="nav-link text-white-50 px-3 py-2 rounded d-flex align-items-center">
+            <i class="bi bi-person-lines-fill me-2 fs-5"></i>
+            <span>Mis Alumnos</span>
           </a>
         </li>
       }

@@ -34,12 +34,12 @@ export const routes: Routes = [
       {
         path: 'cursos',
         component: CursosComponent,
-        canActivate: [roleGuard(['ADMIN', 'DIRECTOR'])]
+        canActivate: [roleGuard(['ADMIN', 'DIRECTOR', 'DOCENTE'])]
       },
       {
         path: 'aulas',
         component: AulasComponent,
-        canActivate: [roleGuard(['ADMIN', 'DIRECTOR'])]
+        canActivate: [roleGuard(['ADMIN', 'DIRECTOR', 'DOCENTE'])]
       },
       {
         path: 'matriculas',

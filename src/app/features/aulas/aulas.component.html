@@ -2,17 +2,23 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h3 class="fw-bold mb-1 text-dark">
-        <i class="bi bi-door-open-fill text-danger me-2"></i> Aulas y Grados Académicos
+        <i class="bi bi-door-open-fill text-danger me-2"></i>
+        {{ isDocente() ? 'Mis Aulas Asignadas' : 'Aulas y Grados Académicos' }}
       </h3>
       <p class="text-muted mb-0 small">
-        Distribución de secciones y control de aforo por grado &bull; Tabla <code>aulas</code>
+        {{ isDocente() ? 'Secciones y grados donde tengo cursos asignados a mi cargo' : 'Distribución de secciones y control de aforo por grado • Tabla aulas' }}
       </p>
     </div>
 
     @if (authService.hasRole('ADMIN')) {
-      <button (click)="abrirModal()" class="btn btn-primary d-flex align-items-center shadow-sm">
-        <i class="bi bi-plus-circle me-2"></i> Nueva Aula
-      </button>
+      <div class="d-flex gap-2">
+        <button (click)="abrirModalAsignar()" class="btn btn-outline-primary d-flex align-items-center shadow-sm">
+          <i class="bi bi-journal-plus me-2"></i> Asignar Curso a Aula
+        </button>
+        <button (click)="abrirModal()" class="btn btn-primary d-flex align-items-center shadow-sm">
+          <i class="bi bi-plus-circle me-2"></i> Nueva Aula
+        </button>
+      </div>
     }
   </div>
 
@@ -31,9 +37,11 @@
   }
 
   <div class="row g-3">
-    @for (a of aulas(); track a.id) {
+    @for (a of aulasAMostrar(); track a.id) {
       <div class="col-12 col-md-6 col-lg-3">
-        <div class="card h-100 border-0 shadow-sm border-top border-4 border-primary">
+        <div class="card h-100 border-0 shadow-sm border-top border-4 border-primary aula-card"
+             [class.card-activa]="aulaSeleccionada()?.id === a.id"
+             (click)="seleccionarAula(a)">
           <div class="card-body">
             <div class="d-flex justify-content-between align-items-center mb-2">
               <span class="badge bg-primary text-white">Año {{ a.anio }}</span>
@@ -41,14 +49,93 @@
             </div>
             <h4 class="fw-bold text-dark mb-1">{{ a.grado }}</h4>
             <div class="small text-muted mb-2">Nivel Primario: Grado {{ a.nivel }}°</div>
-            <div class="d-flex align-items-center text-success small fw-semibold">
-              <i class="bi bi-people-fill me-1"></i> Aforo máx: {{ a.capacidad }} alumnos
+            
+            @if (isDocente() && getCursosEnAula(a.id).length > 0) {
+              <div class="mb-2">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">Cursos a mi cargo:</small>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                  @for (c of getCursosEnAula(a.id); track c) {
+                    <span class="badge bg-info-subtle text-info border border-info" style="font-size: 0.7rem;">{{ c }}</span>
+                  }
+                </div>
+              </div>
+            }
+
+            <div class="d-flex justify-content-between align-items-center mt-3 pt-2 border-top">
+              <span class="small fw-semibold text-success">
+                <i class="bi bi-people-fill me-1"></i> {{ contarAlumnos(a.id) }} / {{ a.capacidad }} alumnos
+              </span>
+              <span class="badge" [class.bg-primary]="aulaSeleccionada()?.id === a.id" [class.bg-light]="aulaSeleccionada()?.id !== a.id" [class.text-dark]="aulaSeleccionada()?.id !== a.id">
+                <i class="bi" [class.bi-check-circle-fill]="aulaSeleccionada()?.id === a.id" [class.bi-chevron-down]="aulaSeleccionada()?.id !== a.id"></i>
+                {{ aulaSeleccionada()?.id === a.id ? 'Seleccionada' : 'Ver alumnos' }}
+              </span>
             </div>
           </div>
         </div>
       </div>
     }
   </div>
+
+  <!-- Panel de alumnos matriculados en el aula seleccionada -->
+  @if (aulaSeleccionada(); as aula) {
+    <div class="card border-0 shadow-sm mt-4 border-start border-4 border-primary">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-people-fill text-primary me-2"></i>
+            Alumnos matriculados en {{ aula.grado }} - Sección "{{ aula.seccion }}" (Año {{ aula.anio }})
+          </h5>
+          <small class="text-muted">Total: {{ alumnosDelAula().length }} de {{ aula.capacidad }} vacantes ocupadas</small>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+          @if (authService.hasRole('ADMIN')) {
+            <button class="btn btn-sm btn-primary" (click)="abrirModalAsignar(aula.id)">
+              <i class="bi bi-journal-plus me-1"></i> Asignar Curso a esta Aula
+            </button>
+          }
+          <button class="btn btn-sm btn-outline-secondary" (click)="aulaSeleccionada.set(null)">
+            <i class="bi bi-x-lg me-1"></i> Cerrar detalle
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        @if (alumnosDelAula().length > 0) {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Código</th>
+                  <th>Nombres y Apellidos</th>
+                  <th>Fecha de Matrícula</th>
+                  <th>Estado Matrícula</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of alumnosDelAula(); track m.id) {
+                  <tr>
+                    <td class="ps-4 fw-bold text-primary font-monospace">{{ m.codigoAlumno }}</td>
+                    <td class="fw-semibold text-dark">{{ m.alumno }}</td>
+                    <td>{{ m.fechaMatricula }}</td>
+                    <td>
+                      <span class="badge" [class.bg-success]="m.estado === 'ACTIVA'" [class.bg-secondary]="m.estado !== 'ACTIVA'">
+                        {{ m.estado }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-person-x display-6 d-block mb-2 text-secondary"></i>
+            <h6 class="fw-bold mb-1">Sin alumnos matriculados</h6>
+            <p class="small mb-0">Actualmente no hay estudiantes asignados a esta sección en el año lectivo {{ aula.anio }}.</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>
 
 <!-- Modal Nueva Aula -->
@@ -92,6 +179,62 @@
           <div class="modal-footer bg-light">
             <button type="button" class="btn btn-outline-secondary" (click)="cerrarModal()">Cancelar</button>
             <button type="submit" class="btn btn-primary"><i class="bi bi-save me-1"></i> Registrar Aula</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}
+
+<!-- Modal Asignar Curso y Docente a Aula -->
+@if (modalAsignarAbierto()) {
+  <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow">
+        <div class="modal-header bg-primary-custom text-white">
+          <h5 class="modal-title fw-bold"><i class="bi bi-journal-plus me-1"></i> Asignar Curso a un Aula</h5>
+          <button type="button" class="btn-close btn-close-white" (click)="cerrarModalAsignar()"></button>
+        </div>
+        <form [formGroup]="asignarForm" (ngSubmit)="guardarAsignacion()">
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-medium">Aula / Sección de Destino <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="aulaId">
+                <option [ngValue]="null">-- Seleccionar Aula --</option>
+                @for (au of aulas(); track au.id) {
+                  <option [ngValue]="au.id">{{ au.grado }} - Sección "{{ au.seccion }}" (Año {{ au.anio }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-medium">Curso a Dictar <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="cursoId">
+                <option [ngValue]="null">-- Seleccionar Curso --</option>
+                @for (c of cursos(); track c.id) {
+                  <option [ngValue]="c.id">{{ c.nombre }} ({{ c.codigo }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-medium">Docente Responsable <span class="text-danger">*</span></label>
+              <select class="form-select" formControlName="docenteId">
+                <option [ngValue]="null">-- Seleccionar Docente --</option>
+                @for (d of docentes(); track d.id) {
+                  <option [ngValue]="d.id">{{ d.nombres }} {{ d.apellidos }} ({{ d.especialidad || 'Primaria' }})</option>
+                }
+              </select>
+            </div>
+
+            <div class="alert alert-info small mb-0">
+              <i class="bi bi-info-circle me-1"></i>
+              Al asignar el curso a esta aula, todos los alumnos de la sección llevarán esta materia automáticamente y el docente seleccionado podrá calificar y pasar asistencia.
+            </div>
+          </div>
+          <div class="modal-footer bg-light">
+            <button type="button" class="btn btn-outline-secondary" (click)="cerrarModalAsignar()">Cancelar</button>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle me-1"></i> Asignar Curso</button>
           </div>
         </form>
       </div>

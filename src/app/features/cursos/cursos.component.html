@@ -2,10 +2,11 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h3 class="fw-bold mb-1 text-dark">
-        <i class="bi bi-journal-bookmark-fill text-danger me-2"></i> Mantenimiento de Cursos
+        <i class="bi bi-journal-bookmark-fill text-danger me-2"></i>
+        {{ isDocente() ? 'Mis Cursos Asignados' : 'Mantenimiento de Cursos' }}
       </h3>
       <p class="text-muted mb-0 small">
-        Plan de estudios del nivel primario &bull; Tabla <code>cursos</code>
+        {{ isDocente() ? 'Áreas curriculares y secciones asignadas a mi perfil docente' : 'Plan de estudios del nivel primario • Tabla cursos' }}
       </p>
     </div>
 
@@ -31,18 +32,95 @@
   }
 
   <div class="row g-3">
-    @for (c of cursos(); track c.id) {
+    @for (c of cursosAMostrar(); track c.id) {
       <div class="col-12 col-md-6 col-lg-4">
-        <div class="card h-100 border-0 shadow-sm border-start border-4 border-primary">
+        <div class="card h-100 border-0 shadow-sm border-start border-4 border-primary curso-card"
+             [class.card-activa]="cursoSeleccionado()?.id === c.id"
+             (click)="seleccionarCurso(c)">
           <div class="card-body">
-            <span class="badge bg-primary text-white mb-2">{{ c.codigo }}</span>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-primary text-white">{{ c.codigo }}</span>
+              <span class="badge" [class.bg-primary]="cursoSeleccionado()?.id === c.id" [class.bg-light]="cursoSeleccionado()?.id !== c.id" [class.text-dark]="cursoSeleccionado()?.id !== c.id">
+                <i class="bi" [class.bi-check-circle-fill]="cursoSeleccionado()?.id === c.id" [class.bi-people]="cursoSeleccionado()?.id !== c.id"></i>
+                {{ cursoSeleccionado()?.id === c.id ? 'Seleccionado' : 'Ver alumnos' }}
+              </span>
+            </div>
             <h5 class="fw-bold text-dark mb-1">{{ c.nombre }}</h5>
-            <small class="text-muted">Área Curricular Oficial Primaria</small>
+            
+            @if (getAsignacionesDeCurso(c.id).length > 0) {
+              <div class="mt-2 pt-2 border-top">
+                <small class="text-muted d-block" style="font-size: 0.72rem;">Secciones asignadas:</small>
+                <div class="d-flex flex-wrap gap-1 mt-1">
+                  @for (asig of getAsignacionesDeCurso(c.id); track asig.id) {
+                    <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">
+                      {{ asig.aula }}
+                    </span>
+                  }
+                </div>
+              </div>
+            } @else {
+              <small class="text-muted">Área Curricular Oficial Primaria</small>
+            }
           </div>
         </div>
       </div>
     }
   </div>
+
+  <!-- Detalle de alumnos del curso seleccionado -->
+  @if (cursoSeleccionado(); as curso) {
+    <div class="card border-0 shadow-sm mt-4 border-start border-4 border-primary">
+      <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+        <div>
+          <h5 class="fw-bold mb-0 text-dark">
+            <i class="bi bi-mortarboard-fill text-primary me-2"></i>
+            Estudiantes matriculados en: {{ curso.nombre }} ({{ curso.codigo }})
+          </h5>
+          <small class="text-muted">Total: {{ alumnosDelCurso().length }} estudiantes en las secciones correspondientes</small>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary" (click)="cursoSeleccionado.set(null)">
+          <i class="bi bi-x-lg me-1"></i> Cerrar detalle
+        </button>
+      </div>
+      <div class="card-body p-0">
+        @if (alumnosDelCurso().length > 0) {
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-4">Código</th>
+                  <th>Estudiante</th>
+                  <th>Grado y Sección</th>
+                  <th>Fecha Matrícula</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (m of alumnosDelCurso(); track m.id) {
+                  <tr>
+                    <td class="ps-4 fw-bold text-primary font-monospace">{{ m.codigoAlumno }}</td>
+                    <td class="fw-semibold text-dark">{{ m.alumno }}</td>
+                    <td><span class="badge bg-light text-dark border">{{ m.grado }} - {{ m.seccion }}</span></td>
+                    <td>{{ m.fechaMatricula }}</td>
+                    <td>
+                      <span class="badge" [class.bg-success]="m.estado === 'ACTIVA'" [class.bg-secondary]="m.estado !== 'ACTIVA'">
+                        {{ m.estado }}
+                      </span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="text-center py-5 text-muted">
+            <i class="bi bi-people display-6 d-block mb-2 text-secondary"></i>
+            <p class="mb-0">No hay estudiantes matriculados en las secciones de este curso.</p>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>
 
 <!-- Modal Nuevo Curso -->

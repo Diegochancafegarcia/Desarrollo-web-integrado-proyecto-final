@@ -3,10 +3,11 @@
   <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
       <h3 class="fw-bold mb-1 text-dark">
-        <i class="bi bi-person-lines-fill text-danger me-2"></i> Mantenimiento de Alumnos
+        <i class="bi bi-person-lines-fill text-danger me-2"></i>
+        {{ isDocente() ? 'Mis Alumnos Asignados' : 'Mantenimiento de Alumnos' }}
       </h3>
       <p class="text-muted mb-0 small">
-        Consulta, registro y administración de estudiantes en la base de datos MySQL (Tabla <code>alumnos</code>)
+        {{ isDocente() ? 'Estudiantes matriculados en mis aulas y secciones a cargo' : 'Consulta, registro y administración de estudiantes en la base de datos MySQL (Tabla alumnos)' }}
       </p>
     </div>
 
@@ -38,20 +39,58 @@
   <div class="card border-0 shadow-sm">
     <div class="card-header bg-white py-3 border-0">
       <div class="row g-2 align-items-center">
-        <div class="col-12 col-md-5">
+        <!-- Búsqueda rápida -->
+        <div class="col-12 col-md-4">
           <div class="input-group">
             <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
             <input
               type="text"
               class="form-control border-start-0"
-              placeholder="Buscar por código, nombres o apellidos..."
+              placeholder="Buscar por código o nombre..."
               [ngModel]="filtroTexto()"
               (ngModelChange)="filtroTexto.set($event)"
             />
           </div>
         </div>
-        <div class="col-12 col-md-7 text-md-end text-muted small">
-          Mostrando <strong>{{ alumnosFiltrados.length }}</strong> de <strong>{{ alumnos().length }}</strong> registros
+
+        <!-- Filtro Grado -->
+        <div class="col-6 col-md-2">
+          <select class="form-select form-select-sm" [ngModel]="filtroGradoId()" (ngModelChange)="filtroGradoId.set($event ? +$event : null)">
+            <option [ngValue]="null">Todos los Grados</option>
+            @for (g of grados(); track g.id) {
+              <option [ngValue]="g.id">{{ g.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Filtro Aula / Sección -->
+        <div class="col-6 col-md-2">
+          <select class="form-select form-select-sm" [ngModel]="filtroAulaId()" (ngModelChange)="filtroAulaId.set($event ? +$event : null)">
+            <option [ngValue]="null">Todas las Aulas</option>
+            @for (au of aulasDisponibles(); track au.id) {
+              <option [ngValue]="au.id">{{ au.grado }} - "{{ au.seccion }}"</option>
+            }
+          </select>
+        </div>
+
+        <!-- Filtro Curso -->
+        <div class="col-6 col-md-2">
+          <select class="form-select form-select-sm" [ngModel]="filtroCursoId()" (ngModelChange)="filtroCursoId.set($event ? +$event : null)">
+            <option [ngValue]="null">Todos los Cursos</option>
+            @for (cu of cursosDisponibles(); track cu.id) {
+              <option [ngValue]="cu.id">{{ cu.nombre }}</option>
+            }
+          </select>
+        </div>
+
+        <!-- Reset filtros & Conteo -->
+        <div class="col-12 col-md-2 d-flex align-items-center justify-content-end gap-2">
+          @if (tieneFiltrosActivos()) {
+            <button class="btn btn-outline-secondary btn-sm" (click)="limpiarFiltros()" title="Limpiar filtros">
+              <i class="bi bi-x-circle me-1"></i> Limpiar
+            </button>
+          }
+          <span class="text-muted small"><strong>{{ alumnosFiltrados.length }}</strong> de <strong>{{ alumnos().length }}</strong></span>
         </div>
       </div>
     </div>
@@ -67,7 +106,7 @@
       } @else if (alumnosFiltrados.length === 0) {
         <div class="text-center py-5">
           <i class="bi bi-inbox display-4 text-muted"></i>
-          <p class="mt-2 text-muted">No se encontraron alumnos registrados.</p>
+          <p class="mt-2 text-muted">No se encontraron alumnos con los filtros seleccionados.</p>
         </div>
       } @else {
         <div class="table-responsive">
@@ -76,6 +115,7 @@
               <tr>
                 <th class="ps-4">Código</th>
                 <th>Estudiante</th>
+                <th>Grado y Sección</th>
                 <th>Nacimiento</th>
                 <th>Sexo</th>
                 <th>Estado</th>
@@ -92,6 +132,18 @@
                   <td>
                     <div class="fw-bold">{{ alumno.nombres }} {{ alumno.apellidos }}</div>
                     <small class="text-muted">ID: {{ alumno.id }}</small>
+                  </td>
+                  <td>
+                    @if (getMatriculaAlumno(alumno.id); as mat) {
+                      <div>
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold">
+                          <i class="bi bi-door-open me-1"></i>{{ mat.grado }} "{{ mat.seccion }}"
+                        </span>
+                        <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">Año {{ mat.anio }}</small>
+                      </div>
+                    } @else {
+                      <span class="badge bg-secondary-subtle text-secondary border">Sin Matrícula</span>
+                    }
                   </td>
                   <td>{{ alumno.fechaNacimiento }}</td>
                   <td>

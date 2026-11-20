@@ -28,7 +28,10 @@ export class DocentesComponent implements OnInit {
   docenteEditando = signal<DocenteResponse | null>(null);
 
   docenteForm = this.fb.group({
-    usuarioId: [1, [Validators.required]],
+    nombres: ['', [Validators.required, Validators.maxLength(100)]],
+    apellidos: ['', [Validators.required, Validators.maxLength(120)]],
+    correo: ['', [Validators.required, Validators.email, Validators.maxLength(160)]],
+    password: ['Colegio2026*', [Validators.required, Validators.minLength(8)]],
     codigoDocente: ['', [Validators.required, Validators.maxLength(20)]],
     especialidad: ['', [Validators.maxLength(100)]],
     telefono: ['', [Validators.maxLength(25)]]
@@ -63,14 +66,41 @@ export class DocentesComponent implements OnInit {
     );
   }
 
+  abrirModalCrear(): void {
+    this.docenteEditando.set(null);
+    const sugerido = `DOC-2026-00${this.docentes().length + 1}`;
+    this.docenteForm.reset({
+      nombres: '',
+      apellidos: '',
+      correo: '',
+      password: 'Colegio2026*',
+      codigoDocente: sugerido,
+      especialidad: 'Educación Primaria',
+      telefono: ''
+    });
+    this.docenteForm.get('correo')?.enable();
+    this.docenteForm.get('nombres')?.enable();
+    this.docenteForm.get('apellidos')?.enable();
+    this.mensajeError.set(null);
+    this.mensajeExito.set(null);
+    this.modalAbierto.set(true);
+  }
+
   abrirModalEditar(d: DocenteResponse): void {
     this.docenteEditando.set(d);
     this.docenteForm.patchValue({
-      usuarioId: d.usuarioId,
+      nombres: d.nombres,
+      apellidos: d.apellidos,
+      correo: d.correo,
+      password: '••••••••',
       codigoDocente: d.codigoDocente,
       especialidad: d.especialidad || '',
       telefono: d.telefono || ''
     });
+    // Al editar solo se modifican datos profesionales del docente
+    this.docenteForm.get('correo')?.disable();
+    this.docenteForm.get('nombres')?.disable();
+    this.docenteForm.get('apellidos')?.disable();
     this.mensajeError.set(null);
     this.mensajeExito.set(null);
     this.modalAbierto.set(true);
@@ -87,24 +117,48 @@ export class DocentesComponent implements OnInit {
     }
 
     const d = this.docenteEditando();
-    if (!d) return;
 
-    const payload: DocenteRequest = {
-      usuarioId: d.usuarioId,
-      codigoDocente: this.docenteForm.value.codigoDocente!,
-      especialidad: this.docenteForm.value.especialidad || undefined,
-      telefono: this.docenteForm.value.telefono || undefined
-    };
+    if (d) {
+      // Modo Edición
+      const payload: DocenteRequest = {
+        usuarioId: d.usuarioId,
+        codigoDocente: this.docenteForm.value.codigoDocente!.trim().toUpperCase(),
+        especialidad: this.docenteForm.value.especialidad ? this.docenteForm.value.especialidad.trim() : undefined,
+        telefono: this.docenteForm.value.telefono ? this.docenteForm.value.telefono.trim() : undefined
+      };
 
-    this.docenteService.updateDocente(d.id, payload).subscribe({
-      next: (actualizado) => {
-        this.mensajeExito.set(`Docente ${actualizado.nombres} actualizado correctamente.`);
-        this.cerrarModal();
-        this.cargarDocentes();
-      },
-      error: (err) => {
-        this.mensajeError.set(err.error?.message || 'Error al actualizar docente.');
-      }
-    });
+      this.docenteService.updateDocente(d.id, payload).subscribe({
+        next: (actualizado) => {
+          this.mensajeExito.set(`Docente ${actualizado.nombres} ${actualizado.apellidos} actualizado correctamente.`);
+          this.cerrarModal();
+          this.cargarDocentes();
+        },
+        error: (err) => {
+          this.mensajeError.set(err.error?.message || 'Error al actualizar docente.');
+        }
+      });
+    } else {
+      // Modo Creación
+      const nuevoPayload = {
+        nombres: this.docenteForm.getRawValue().nombres!,
+        apellidos: this.docenteForm.getRawValue().apellidos!,
+        correo: this.docenteForm.getRawValue().correo!,
+        password: this.docenteForm.getRawValue().password || 'Colegio2026*',
+        codigoDocente: this.docenteForm.getRawValue().codigoDocente!,
+        especialidad: this.docenteForm.getRawValue().especialidad || undefined,
+        telefono: this.docenteForm.getRawValue().telefono || undefined
+      };
+
+      this.docenteService.crearDocenteConUsuario(nuevoPayload).subscribe({
+        next: (creado) => {
+          this.mensajeExito.set(`Docente ${creado.nombres} ${creado.apellidos} registrado exitosamente con acceso a la intranet.`);
+          this.cerrarModal();
+          this.cargarDocentes();
+        },
+        error: (err) => {
+          this.mensajeError.set(err.error?.message || 'Error al registrar el docente.');
+        }
+      });
+    }
   }
 }

@@ -1,9 +1,11 @@
-﻿import { Component, inject, OnInit, signal } from '@angular/core';
+﻿import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { AlumnoService } from '../../core/services/alumno.service';
 import { ApoderadoService } from '../../core/services/apoderado.service';
 import { CalificacionService } from '../../core/services/calificacion.service';
+import { AcademicoService } from '../../core/services/academico.service';
+import { MatriculaService } from '../../core/services/matricula.service';
 import { AuthService } from '../../core/services/auth.service';
 import {
   AlumnoResponse,
@@ -13,6 +15,16 @@ import {
 } from '../../core/models/alumno.models';
 import { ApoderadoResponse } from '../../core/models/apoderado.models';
 import { CalificacionResponse } from '../../core/models/calificacion.models';
+import { AsignacionResponse, GradoResponse, AulaResponse, CursoResponse } from '../../core/models/academico.models';
+import { MatriculaResponse } from '../../core/models/matricula.models';
+
+function normalizar(texto: string): string {
+  return (texto || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+}
 
 @Component({
   selector: 'app-alumnos',
@@ -25,13 +37,60 @@ export class AlumnosComponent implements OnInit {
   alumnoService = inject(AlumnoService);
   apoderadoService = inject(ApoderadoService);
   calificacionService = inject(CalificacionService);
+  academicoService = inject(AcademicoService);
+  matriculaService = inject(MatriculaService);
   authService = inject(AuthService);
   private fb = inject(FormBuilder);
 
   alumnos = signal<AlumnoResponse[]>([]);
   apoderados = signal<ApoderadoResponse[]>([]);
+  matriculas = signal<MatriculaResponse[]>([]);
+  asignaciones = signal<AsignacionResponse[]>([]);
+  grados = signal<GradoResponse[]>([]);
+  aulas = signal<AulaResponse[]>([]);
+  cursos = signal<CursoResponse[]>([]);
   isLoading = signal<boolean>(false);
+
+  // Filtros combinados
   filtroTexto = signal<string>('');
+  filtroGradoId = signal<number | null>(null);
+  filtroAulaId = signal<number | null>(null);
+  filtroCursoId = signal<number | null>(null);
+
+  isDocente(): boolean {
+    return this.authService.hasRole('DOCENTE') && !this.authService.hasAnyRole(['ADMIN', 'DIRECTOR']);
+  }
+
+  asignacionesDocente = computed(() => {
+    if (!this.isDocente()) return [];
+    const user = this.authService.currentUser();
+    if (!user) return [];
+    const normApellidos = normalizar(user.apellidos);
+    return this.asignaciones().filter(a => normalizar(a.docente).includes(normApellidos));
+  });
+
+  aulasDisponibles = computed(() => {
+    let lista = this.aulas();
+    if (this.isDocente()) {
+      const misAulas = new Set(this.asignacionesDocente().map(a => a.aulaId));
+      lista = lista.filter(a => misAulas.has(a.id));
+    }
+    const gradoId = this.filtroGradoId();
+    if (gradoId) {
+      lista = lista.filter(a => a.gradoId === gradoId);
+    }
+    return lista;
+  });
+
+  cursosDisponibles = computed(() => {
+    if (!this.isDocente()) return this.cursos();
+    const misCursos = new Set(this.asignacionesDocente().map(a => a.cursoId));
+    return this.cursos().filter(c => misCursos.has(c.id));
+  });
+
+  tieneFiltrosActivos = computed(() => {
+    return !!this.filtroTexto() || !!this.filtroGradoId() || !!this.filtroAulaId() || !!this.filtroCursoId();
+  });
 
   // Mensajes de alerta
   mensajeExito = signal<string | null>(null);
@@ -67,6 +126,7 @@ export class AlumnosComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarAlumnos();
+    this.cargarDatosAcademicos();
     if (this.authService.hasRole('ADMIN')) {
       this.cargarApoderados();
     }
@@ -90,6 +150,29 @@ export class AlumnosComponent implements OnInit {
     });
   }
 
+  cargarDatosAcademicos(): void {
+    this.matriculaService.getMatriculas().subscribe({
+      next: (data) => this.matriculas.set(data),
+      error: () => {}
+    });
+    this.academicoService.getGrados().subscribe({
+      next: (data) => this.grados.set(data),
+      error: () => {}
+    });
+    this.academicoService.getAulas().subscribe({
+      next: (data) => this.aulas.set(data),
+      error: () => {}
+    });
+    this.academicoService.getCursos().subscribe({
+      next: (data) => this.cursos.set(data),
+      error: () => {}
+    });
+    this.academicoService.getAsignaciones().subscribe({
+      next: (data) => this.asignaciones.set(data),
+      error: () => {}
+    });
+  }
+
   cargarApoderados(): void {
     this.apoderadoService.getApoderados().subscribe({
       next: (data) => this.apoderados.set(data),
@@ -97,10 +180,77 @@ export class AlumnosComponent implements OnInit {
     });
   }
 
+  getMatriculaAlumno(alumnoId: number): MatriculaResponse | undefined {
+    return this.matriculas().find((m) => m.alumnoId === alumnoId && m.estado === 'ACTIVA');
+  }
+
+  getCursosAlumno(alumnoId: number): string[] {
+    const mat = this.getMatriculaAlumno(alumnoId);
+    if (!mat) return [];
+    const cursosEnAula = this.asignaciones()
+      .filter((a) => a.aulaId === mat.aulaId)
+      .map((a) => a.curso);
+    return Array.from(new Set(cursosEnAula));
+  }
+
+  limpiarFiltros(): void {
+    this.filtroTexto.set('');
+    this.filtroGradoId.set(null);
+    this.filtroAulaId.set(null);
+    this.filtroCursoId.set(null);
+  }
+
   get alumnosFiltrados(): AlumnoResponse[] {
+    let lista = this.alumnos();
+
+    // Si es docente, filtrar solo los alumnos matriculados en las aulas que dicho docente tiene asignadas
+    if (this.isDocente()) {
+      const aulaIdsDocente = new Set(this.asignacionesDocente().map((a) => a.aulaId));
+      if (aulaIdsDocente.size > 0 && this.matriculas().length > 0) {
+        const alumnoIdsEnMisAulas = new Set(
+          this.matriculas()
+            .filter((m) => aulaIdsDocente.has(m.aulaId))
+            .map((m) => m.alumnoId)
+        );
+        lista = lista.filter((a) => alumnoIdsEnMisAulas.has(a.id));
+      }
+    }
+
+    // Filtro por Grado
+    const gradoId = this.filtroGradoId();
+    if (gradoId) {
+      const aulaIdsDeGrado = new Set(this.aulas().filter((a) => a.gradoId === gradoId).map((a) => a.id));
+      const alumnoIdsEnGrado = new Set(
+        this.matriculas().filter((m) => aulaIdsDeGrado.has(m.aulaId)).map((m) => m.alumnoId)
+      );
+      lista = lista.filter((a) => alumnoIdsEnGrado.has(a.id));
+    }
+
+    // Filtro por Aula / Sección
+    const aulaId = this.filtroAulaId();
+    if (aulaId) {
+      const alumnoIdsEnAula = new Set(
+        this.matriculas().filter((m) => m.aulaId === aulaId).map((m) => m.alumnoId)
+      );
+      lista = lista.filter((a) => alumnoIdsEnAula.has(a.id));
+    }
+
+    // Filtro por Curso
+    const cursoId = this.filtroCursoId();
+    if (cursoId) {
+      const aulaIdsConCurso = new Set(
+        this.asignaciones().filter((asig) => asig.cursoId === cursoId).map((asig) => asig.aulaId)
+      );
+      const alumnoIdsConCurso = new Set(
+        this.matriculas().filter((m) => aulaIdsConCurso.has(m.aulaId)).map((m) => m.alumnoId)
+      );
+      lista = lista.filter((a) => alumnoIdsConCurso.has(a.id));
+    }
+
+    // Filtro de texto (búsqueda)
     const texto = this.filtroTexto().toLowerCase().trim();
-    if (!texto) return this.alumnos();
-    return this.alumnos().filter((a) =>
+    if (!texto) return lista;
+    return lista.filter((a) =>
       a.nombres.toLowerCase().includes(texto) ||
       a.apellidos.toLowerCase().includes(texto) ||
       a.codigoAlumno.toLowerCase().includes(texto)

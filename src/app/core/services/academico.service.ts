@@ -8,6 +8,7 @@ import {
   AulaResponse,
   CursoRequest,
   CursoResponse,
+  AsignacionRequest,
   AsignacionResponse
 } from '../models/academico.models';
 
@@ -49,5 +50,9 @@ export class AcademicoService {
     let params = new HttpParams();
     if (aulaId) params = params.set('aulaId', aulaId.toString());
     return this.http.get<AsignacionResponse[]>(`${this.baseUrl}/asignaciones-docentes`, { params });
+  }
+
+  createAsignacion(data: AsignacionRequest): Observable<AsignacionResponse> {
+    return this.http.post<AsignacionResponse>(`${this.baseUrl}/asignaciones-docentes`, data);
   }
 }

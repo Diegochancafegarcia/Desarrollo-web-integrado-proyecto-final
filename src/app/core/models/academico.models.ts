@@ -41,6 +41,12 @@ export interface CursoResponse {
   nombre: string;
 }
 
+export interface AsignacionRequest {
+  docenteId: number;
+  cursoId: number;
+  aulaId: number;
+}
+
 export interface AsignacionResponse {
   id: number;
   docenteId: number;
