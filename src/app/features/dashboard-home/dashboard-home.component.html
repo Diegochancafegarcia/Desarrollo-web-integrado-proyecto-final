@@ -3,7 +3,7 @@
   <div class="card bg-primary-custom text-white mb-4 border-0 shadow-sm overflow-hidden">
     <div class="card-body p-4 p-md-5 d-flex flex-column flex-md-row justify-content-between align-items-md-center">
       <div>
-        <span class="badge bg-white text-danger fw-semibold px-3 py-1 mb-2">Avance 3 &bull; Frontend en Angular</span>
+        <span class="badge bg-white text-danger fw-semibold px-3 py-1 mb-2">Intranet Académica Institucional</span>
         <h2 class="fw-bold mb-2">Bienvenido/a, {{ authService.currentUser()?.nombres }} {{ authService.currentUser()?.apellidos }}</h2>
         <p class="text-white-50 mb-0 fs-6">
           Panel de administración y gestión académica &bull; I.E. N.° 80892 "Santa Rosa de Lima"
@@ -88,7 +88,7 @@
 
   <!-- Accesos Directos por Rol -->
   <div class="row g-4">
-    <div class="col-12 col-lg-8">
+    <div class="col-12">
       <div class="card border-0 shadow-sm">
         <div class="card-header bg-white border-0 py-3">
           <h5 class="fw-bold mb-0 text-dark">
@@ -98,7 +98,7 @@
         <div class="card-body pt-0">
           <div class="row g-3">
             @if (authService.hasAnyRole(['ADMIN', 'DIRECTOR', 'DOCENTE'])) {
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
                   <div>
                     <h6 class="fw-bold text-dark"><i class="bi bi-people-fill text-primary me-2"></i>Mantenimiento de Alumnos</h6>
@@ -112,7 +112,7 @@
             }
 
             @if (authService.hasAnyRole(['ADMIN', 'DOCENTE'])) {
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
                   <div>
                     <h6 class="fw-bold text-dark"><i class="bi bi-award-fill text-success me-2"></i>Registro de Calificaciones</h6>
@@ -124,7 +124,7 @@
                 </div>
               </div>
 
-              <div class="col-12 col-md-6">
+              <div class="col-12 col-md-4">
                 <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
                   <div>
                     <h6 class="fw-bold text-dark"><i class="bi bi-calendar-check-fill text-warning me-2"></i>Control de Asistencia</h6>
@@ -138,11 +138,11 @@
             }
 
             @if (authService.hasRole('APODERADO')) {
-              <div class="col-12">
+              <div class="col-12 col-md-6">
                 <div class="p-3 border rounded-3 bg-light h-100 d-flex flex-column justify-content-between">
                   <div>
                     <h6 class="fw-bold text-dark"><i class="bi bi-heart-fill text-danger me-2"></i>Portal de la Familia</h6>
-                    <p class="text-muted small mb-3">Revise las calificaciones de sus hijos matriculados en la institución.</p>
+                    <p class="text-muted small mb-3">Revise las calificaciones, asistencias, materias y horarios de sus hijos matriculados.</p>
                   </div>
                   <a routerLink="/dashboard/alumnos" class="btn btn-danger btn-sm align-self-start">
                     Ver Mis Hijos &rarr;
@@ -150,37 +150,6 @@
                 </div>
               </div>
             }
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Panel Lateral Informativo -->
-    <div class="col-12 col-lg-4">
-      <div class="card border-0 shadow-sm mb-4">
-        <div class="card-header bg-white border-0 py-3">
-          <h6 class="fw-bold mb-0 text-dark">
-            <i class="bi bi-info-circle-fill text-primary me-2"></i> Estado de la Conexión
-          </h6>
-        </div>
-        <div class="card-body pt-0">
-          <div class="p-3 rounded-3 bg-light mb-3">
-            <div class="d-flex align-items-center mb-2">
-              <span class="badge bg-success me-2">ONLINE</span>
-              <span class="small fw-semibold">Backend Spring Boot 3.3</span>
-            </div>
-            <div class="small text-muted">
-              API REST conectada en <code>http://localhost:8080/api/v1</code>
-            </div>
-          </div>
-          <div class="p-3 rounded-3 bg-light">
-            <div class="d-flex align-items-center mb-2">
-              <span class="badge bg-primary me-2">MYSQL 8</span>
-              <span class="small fw-semibold">Base de Datos</span>
-            </div>
-            <div class="small text-muted">
-              Base de datos <code>intranet_academica</code> con 15 tablas relacionales.
-            </div>
           </div>
         </div>
       </div>
